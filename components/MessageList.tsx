@@ -11,14 +11,37 @@ interface Props {
 }
 
 export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, isLoading }) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessagesLength = useRef(messages.length);
+  const lastSessionId = useRef<string | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollRef.current;
+    if (!container) return;
+
+    // Detect if we just switched to a new session (loaded a bunch of messages at once)
+    const isNewLoad = lastMessagesLength.current === 0 && messages.length > 0;
+    // Detect if we are currently streaming an assistant response
+    const isStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isLoading;
+    // Detect if a single new message was added
+    const isNewMessage = messages.length > lastMessagesLength.current && lastMessagesLength.current > 0;
+
+    if (isNewLoad) {
+      // Immediate scroll to bottom for history load to avoid jitter
+      container.scrollTop = container.scrollHeight;
+    } else if (isNewMessage || isStreaming) {
+      // Smooth scroll for new messages or active streaming
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+
+    lastMessagesLength.current = messages.length;
   }, [messages, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-6">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
       {messages.map((msg, index) => {
         const isUser = msg.role === 'user';
         const isTool = msg.role === 'tool' || msg.role === 'tool_result';
@@ -170,7 +193,6 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
            </div>
         </div>
       )}
-      <div ref={bottomRef} />
     </div>
   );
 };
