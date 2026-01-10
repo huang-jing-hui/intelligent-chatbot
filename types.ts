@@ -17,6 +17,7 @@ export interface Message {
   content: string;
   reasoning_content?: string;
   tool_calls?: ToolCall[];
+  tool_result?: ToolResult[];
   parts?: MessagePart[];
   tool_call_id?: string; // For tool messages
   interrupted?: boolean;

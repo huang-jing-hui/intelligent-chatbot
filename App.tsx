@@ -233,10 +233,10 @@ const App: React.FC = () => {
         updateLastMessage(prevMsg => {
           // 1. Shallow copy the message object
           const msg = { ...prevMsg };
-          
+
           // 2. Shallow copy the parts array
           msg.parts = msg.parts ? [...msg.parts] : [];
-          
+
           const getLastPart = () => {
              if (msg.parts!.length === 0) return null;
              return msg.parts![msg.parts!.length - 1];
@@ -245,7 +245,7 @@ const App: React.FC = () => {
           // Handle Reasoning
           if (delta.reasoning_content) {
             const lastPart = getLastPart();
-            
+
             if (lastPart?.type === 'reasoning') {
               const newPart = { ...lastPart, content: lastPart.content + delta.reasoning_content };
               msg.parts![msg.parts!.length - 1] = newPart;
@@ -259,7 +259,7 @@ const App: React.FC = () => {
           if (delta.tool_calls) {
             const lastPart = getLastPart();
             let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
-            
+
             if (lastPart?.type === 'tool_calls') {
                 toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
                 msg.parts![msg.parts!.length - 1] = toolPart;
@@ -276,7 +276,7 @@ const App: React.FC = () => {
                   toolPart.tool_calls.push(activeTool);
                }
             });
-            
+
             msg.tool_calls = Object.values(currentToolCalls);
           }
 

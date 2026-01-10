@@ -28,14 +28,14 @@ export async function* streamChatCompletion(request: ChatRequest): AsyncGenerato
 
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split('\n');
-    
+
     // Keep the last incomplete line in the buffer
     buffer = lines.pop() || '';
 
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine || trimmedLine === 'data: [DONE]') continue;
-      
+
       if (trimmedLine.startsWith('data: ')) {
         try {
           const jsonStr = trimmedLine.slice(6);
@@ -54,7 +54,14 @@ export const getChatMessages = async (chatId: string): Promise<Message[]> => {
   const response = await fetch(`${API_BASE_URL}/v1/chat/get_message`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId })
+    body: JSON.stringify({
+      "config":
+          {
+            "configurable": {
+              "thread_id": chatId
+            }
+          }
+    })
   });
   const data = await response.json();
   if (data.status === 'success') {
@@ -72,7 +79,12 @@ export const getChatTitles = async (): Promise<ChatSession[]> => {
     });
     const data = await response.json();
     if (data.status === 'success') {
-      return JSON.parse(data.data);
+      const raw = JSON.parse(data.data);
+      return raw.map((item: any) => ({
+        id: item.thread_id,
+        title: item.title,
+        updated_at: item.updated_at || new Date().toISOString()
+      }));
     }
     return [];
   } catch (error) {
@@ -85,6 +97,13 @@ export const deleteChat = async (chatId: string) => {
   return fetch(`${API_BASE_URL}/v1/chat/delete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId })
+    body: JSON.stringify({
+      "config":
+          {
+            "configurable": {
+              "thread_id": chatId
+            }
+          }
+    })
   });
 };
