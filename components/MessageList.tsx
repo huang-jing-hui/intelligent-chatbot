@@ -13,35 +13,62 @@ interface Props {
 export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, isLoading }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessagesLength = useRef(messages.length);
-  const lastSessionId = useRef<string | null>(null);
+  const isAutoScrolling = useRef(true);
 
+  // Handle automatic scrolling to bottom
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
-    // Detect if we just switched to a new session (loaded a bunch of messages at once)
     const isNewLoad = lastMessagesLength.current === 0 && messages.length > 0;
-    // Detect if we are currently streaming an assistant response
     const isStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isLoading;
-    // Detect if a single new message was added
     const isNewMessage = messages.length > lastMessagesLength.current && lastMessagesLength.current > 0;
 
     if (isNewLoad) {
-      // Immediate scroll to bottom for history load to avoid jitter
+      // 1. Instant jump to bottom for new conversation loads
+      container.style.scrollBehavior = 'auto';
       container.scrollTop = container.scrollHeight;
-    } else if (isNewMessage || isStreaming) {
-      // Smooth scroll for new messages or active streaming
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: 'smooth'
-      });
+      isAutoScrolling.current = true;
+    } else if (isNewMessage || (isStreaming && isAutoScrolling.current)) {
+      // 2. Smooth scroll for new messages or active streaming
+      container.style.scrollBehavior = 'smooth';
+      container.scrollTop = container.scrollHeight;
     }
 
     lastMessagesLength.current = messages.length;
   }, [messages, isLoading]);
 
+  // Use ResizeObserver to handle content height changes (images, math formulas)
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // If we were already near the bottom, stay pinned to bottom as height grows
+      if (isAutoScrolling.current) {
+        container.style.scrollBehavior = 'auto'; // Don't animate adjustments
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+
+    // Observe the children to catch content height changes
+    Array.from(container.children).forEach(child => resizeObserver.observe(child));
+    
+    // Also handle manual scroll to disable auto-scroll if user scrolls up
+    const handleScroll = () => {
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
+      isAutoScrolling.current = isAtBottom;
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      resizeObserver.disconnect();
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [messages.length]); // Re-observe when messages change
+
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6">
       {messages.map((msg, index) => {
         const isUser = msg.role === 'user';
         const isTool = msg.role === 'tool' || msg.role === 'tool_result';
