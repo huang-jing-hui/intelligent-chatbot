@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'media',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            typography: (theme) => ({
+                DEFAULT: {
+                    css: {
+                        color: theme('colors.gray.700'),
+                        a: {
+                            color: theme('colors.blue.600'),
+                            '&:hover': {
+                                color: theme('colors.blue.700'),
+                            },
+                        },
+                    },
+                },
+                invert: {
+                    css: {
+                        color: theme('colors.gray.300'),
+                        a: {
+                            color: theme('colors.blue.400'),
+                            '&:hover': {
+                                color: theme('colors.blue.300'),
+                            },
+                        },
+                    },
+                },
+            }),
+          },
+        },
+        plugins: [
+            function({ addBase, theme }) {
+                addBase({
+                    'h1': { fontSize: theme('fontSize.2xl') },
+                    'h2': { fontSize: theme('fontSize.xl') },
+                    'h3': { fontSize: theme('fontSize.lg') },
+                })
+            }
+        ],
+      }
+    </script>
+    <script src="https://unpkg.com/@tailwindcss/typography@0.5.10/src/index.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "remark-gfm": "https://esm.sh/remark-gfm@^4.0.1",
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0",
+    "uuid": "https://esm.sh/uuid@^13.0.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 dark:bg-black">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

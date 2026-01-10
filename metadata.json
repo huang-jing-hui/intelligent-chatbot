@@ -1,0 +1,5 @@
+{
+  "name": "Intelligent Chatbot",
+  "description": "A feature-rich chatbot application supporting reasoning chains, tool calls, and human-in-the-loop interactions.",
+  "requestFramePermissions": []
+}
