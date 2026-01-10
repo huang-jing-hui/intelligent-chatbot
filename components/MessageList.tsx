@@ -14,6 +14,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessagesLength = useRef(messages.length);
   const isAutoScrolling = useRef(true);
+  const isInitialLoad = useRef(true);
 
   // Handle automatic scrolling to bottom
   useEffect(() => {
@@ -21,16 +22,17 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
     if (!container) return;
 
     const isNewLoad = lastMessagesLength.current === 0 && messages.length > 0;
-    const isStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isLoading;
     const isNewMessage = messages.length > lastMessagesLength.current && lastMessagesLength.current > 0;
+    const isStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isLoading;
 
     if (isNewLoad) {
-      // 1. Instant jump to bottom for new conversation loads
+      // Instant snap to bottom for history load
       container.style.scrollBehavior = 'auto';
       container.scrollTop = container.scrollHeight;
       isAutoScrolling.current = true;
+      // Allow a small delay for things to settle before enabling smooth scroll logic
+      setTimeout(() => { isInitialLoad.current = false; }, 100);
     } else if (isNewMessage || (isStreaming && isAutoScrolling.current)) {
-      // 2. Smooth scroll for new messages or active streaming
       container.style.scrollBehavior = 'smooth';
       container.scrollTop = container.scrollHeight;
     }
@@ -38,25 +40,25 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
     lastMessagesLength.current = messages.length;
   }, [messages, isLoading]);
 
-  // Use ResizeObserver to handle content height changes (images, math formulas)
+  // Handle height changes (ResizeObserver)
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      // If we were already near the bottom, stay pinned to bottom as height grows
-      if (isAutoScrolling.current) {
-        container.style.scrollBehavior = 'auto'; // Don't animate adjustments
+      // Only force scroll if we are not in initial load phase AND user was already near bottom
+      if (!isInitialLoad.current && isAutoScrolling.current) {
+        container.style.scrollBehavior = 'auto';
         container.scrollTop = container.scrollHeight;
       }
     });
 
-    // Observe the children to catch content height changes
     Array.from(container.children).forEach(child => resizeObserver.observe(child));
     
-    // Also handle manual scroll to disable auto-scroll if user scrolls up
     const handleScroll = () => {
-      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
+      if (isInitialLoad.current) return;
+      // If user is within 100px of bottom, consider it "at bottom"
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
       isAutoScrolling.current = isAtBottom;
     };
 
@@ -65,10 +67,10 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
       resizeObserver.disconnect();
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [messages.length]); // Re-observe when messages change
+  }, [messages.length]);
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
       {messages.map((msg, index) => {
         const isUser = msg.role === 'user';
         const isTool = msg.role === 'tool' || msg.role === 'tool_result';
