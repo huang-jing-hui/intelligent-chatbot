@@ -255,56 +255,57 @@ const App: React.FC = () => {
             msg.reasoning_content = (msg.reasoning_content || '') + delta.reasoning_content;
           }
 
-                    // Handle Tool Calls (Structural Phase)
-                    if (delta.tool_calls) {
-                      const lastPart = getLastPart();
-                      let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
+          // Handle Tool Calls (Structural Phase)
+          if (delta.tool_calls) {
+            const lastPart = getLastPart();
+            let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
 
-                      if (lastPart?.type === 'tool_calls') {
-                          toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
-                          msg.parts![msg.parts!.length - 1] = toolPart;
-                      } else {
-                          toolPart = { type: 'tool_calls', tool_calls: [] };
-                          msg.parts!.push(toolPart);
-                      }
-
-                      delta.tool_calls.forEach(tc => {
-                         const activeTool = currentToolCalls[tc.index];
-                         if (activeTool && !toolPart.tool_calls.includes(activeTool)) {
-                            toolPart.tool_calls.push(activeTool);
-                         }
-                      });
-
-                      msg.tool_calls = Object.values(currentToolCalls);
-                    }
-
-                    // Handle Tool Results
-                    if (delta.tool_result) {
-                      const lastPart = getLastPart();
-                      let resultPart: { type: 'tool_result', tool_result: ToolResult[] };
-
-                      if (lastPart?.type === 'tool_result') {
-                           resultPart = { ...lastPart, tool_result: [...(lastPart as any).tool_result] } as any;
-                           msg.parts![msg.parts!.length - 1] = resultPart;
-                      } else {
-                           resultPart = { type: 'tool_result', tool_result: [] };
-                           msg.parts!.push(resultPart);
-                      }
-
-                      resultPart.tool_result.push(delta.tool_result);
-
-                                  // Legacy update
-                                  msg.tool_result = msg.tool_result ? [...msg.tool_result] : [];
-                                  msg.tool_result.push(delta.tool_result);
-                                }
-
-                                // Handle Content
-                                if (delta.content) {            const lastPart = getLastPart();
-            if (lastPart?.type === 'text') {
-               const newPart = { ...lastPart, content: lastPart.content + delta.content };
-               msg.parts![msg.parts!.length - 1] = newPart;
+            if (lastPart?.type === 'tool_calls') {
+              toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
+              msg.parts![msg.parts!.length - 1] = toolPart;
             } else {
-               msg.parts!.push({ type: 'text', content: delta.content });
+              toolPart = { type: 'tool_calls', tool_calls: [] };
+              msg.parts!.push(toolPart);
+            }
+
+            delta.tool_calls.forEach(tc => {
+              const activeTool = currentToolCalls[tc.index];
+              if (activeTool && !toolPart.tool_calls.includes(activeTool)) {
+                toolPart.tool_calls.push(activeTool);
+              }
+            });
+
+            msg.tool_calls = Object.values(currentToolCalls);
+          }
+
+          // Handle Tool Results
+          if (delta.tool_result) {
+            const lastPart = getLastPart();
+            let resultPart: { type: 'tool_result', tool_result: ToolResult[] };
+
+            if (lastPart?.type === 'tool_result') {
+              resultPart = { ...lastPart, tool_result: [...(lastPart as any).tool_result] } as any;
+              msg.parts![msg.parts!.length - 1] = resultPart;
+            } else {
+              resultPart = { type: 'tool_result', tool_result: [] };
+              msg.parts!.push(resultPart);
+            }
+
+            resultPart.tool_result.push(delta.tool_result);
+
+            // Legacy update
+            msg.tool_result = msg.tool_result ? [...msg.tool_result] : [];
+            msg.tool_result.push(delta.tool_result);
+          }
+
+          // Handle Content
+          if (delta.content) {
+            const lastPart = getLastPart();
+            if (lastPart?.type === 'text') {
+              const newPart = { ...lastPart, content: lastPart.content + delta.content };
+              msg.parts![msg.parts!.length - 1] = newPart;
+            } else {
+              msg.parts!.push({ type: 'text', content: delta.content });
             }
             msg.content += delta.content;
           }

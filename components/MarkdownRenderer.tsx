@@ -34,7 +34,7 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
     .join('\n');
 
   return (
-    <div className={`prose prose-base dark:prose-invert max-w-none ${className}`}>
+    <article className={`prose prose-sm lg:prose-base dark:prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -55,7 +55,7 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
           thead: ({node, ...props}) => <thead className="bg-gray-50 dark:bg-white/5" {...props} />,
           th: ({node, ...props}) => <th className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
           td: ({node, ...props}) => <td className="border-b border-gray-100 dark:border-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300" {...props} />,
-
+          
           code(props: any) {
             const { children, className, node, ...rest } = props;
             const match = /language-(\w+)/.exec(className || '');
@@ -76,12 +76,11 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
                 {children}
               </code>
             );
-
           },
         }}
       >
         {processedContent}
       </ReactMarkdown>
-    </div>
+    </article>
   );
 };
