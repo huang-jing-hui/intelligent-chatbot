@@ -52,20 +52,20 @@ export const Sidebar: React.FC<Props> = ({ sessions, currentSessionId, onSelectS
             </button>
           </div>
         ))}
-        
+
         {sessions.length === 0 && (
           <div className="text-center py-10 px-4 text-gray-400 text-sm">
             No chat history
           </div>
         )}
       </div>
-      
+
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
          <div className="flex items-center gap-3 px-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500" />
             <div className="flex-1 min-w-0">
-               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">User</p>
-               <p className="text-xs text-gray-500 truncate">Pro Plan</p>
+               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Hjh</p>
+               <p className="text-xs text-gray-500 truncate">jump</p>
             </div>
          </div>
       </div>

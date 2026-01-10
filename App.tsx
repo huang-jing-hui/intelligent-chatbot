@@ -332,7 +332,7 @@ const App: React.FC = () => {
   };
 
   const handleInterruptResponse = (response: string) => {
-    updateLastMessage(msg => ({ ...msg, interrupted: true }));
+    // updateLastMessage(msg => ({ ...msg, interrupted: true }));
     handleSendMessage(response);
   };
 
