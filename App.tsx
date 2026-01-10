@@ -337,10 +337,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -350,7 +350,7 @@ const App: React.FC = () => {
       <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <Sidebar
+        <Sidebar 
           sessions={sessions}
           currentSessionId={currentSessionId}
           onSelectSession={setCurrentSessionId}
@@ -360,7 +360,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
         <header className="flex items-center px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black/50 backdrop-blur-md sticky top-0 z-10">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
