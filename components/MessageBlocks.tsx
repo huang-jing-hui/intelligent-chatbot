@@ -5,12 +5,12 @@ import { ToolCall, InterruptInfo } from '../types';
 
 export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  
+
   if (!content) return null;
 
   return (
     <div className="my-2 border border-blue-100 dark:border-blue-900/30 rounded-lg overflow-hidden bg-blue-50/50 dark:bg-blue-900/10">
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors"
       >
@@ -18,7 +18,7 @@ export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
         <span>Thinking Process</span>
         {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
       </button>
-      
+
       {isExpanded && (
         <div className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 font-mono border-t border-blue-100 dark:border-blue-900/30 bg-white/50 dark:bg-black/20">
           <MarkdownRenderer content={content} />
@@ -30,12 +30,12 @@ export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
 
 export const ToolCallsBlock: React.FC<{ calls: ToolCall[] }> = ({ calls }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   if (!calls || calls.length === 0) return null;
 
   return (
     <div className="my-2 border border-purple-200 dark:border-purple-800 rounded-lg overflow-hidden bg-purple-50 dark:bg-purple-900/10">
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
       >
@@ -68,7 +68,7 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
   let processedContent = content;
   let isUrl = false;
   let isImage = false;
-  
+
   // Clean up toolName for display/logic
   const displayToolName = toolName && toolName.trim() !== '' && toolName.toLowerCase() !== 'unknown' ? toolName : null;
 
@@ -77,7 +77,7 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
     // If it's a simple JSON object for status or empty data, set processedContent to empty string
     // This allows the block to be hidden if there's no useful info
     if (Object.keys(parsed).length === 0 || (parsed.status && Object.keys(parsed).length === 1 && !parsed.content && !parsed.results)) {
-        processedContent = ''; 
+        processedContent = '';
     } else {
         processedContent = JSON.stringify(parsed, null, 2); // Pretty print JSON
     }
@@ -104,7 +104,7 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
 
   return (
     <div className="my-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800/50">
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       >
@@ -112,7 +112,7 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
         <span>Tool Result {displayToolName ? `: ${displayToolName}` : ''}</span>
         {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
       </button>
-      
+
       {isExpanded && (
         <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 font-mono border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-black/20">
           {isImage ? (
@@ -166,7 +166,7 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
             {info.type === 'approval_required' ? 'Approval Required' : 'Input Required'}
           </h4>
           <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">{info.message}</p>
-          
+
           {info.type === 'approval_required' && (
             <div className="flex gap-3">
               <button
@@ -189,19 +189,19 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
           )}
 
           {info.type === 'input_required' && (
-             <form 
+             <form
                onSubmit={(e) => { e.preventDefault(); onRespond(inputValue); }}
                className="flex gap-2"
              >
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="flex-1 px-3 py-2 border border-amber-300 dark:border-amber-700 rounded-md bg-white dark:bg-black/20 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="Enter your input..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   disabled={isDisabled}
                 />
-                <button 
+                <button
                     type="submit"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors"
                     disabled={isDisabled}
