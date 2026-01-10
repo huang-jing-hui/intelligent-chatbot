@@ -215,17 +215,28 @@ const App: React.FC = () => {
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
+        // 1. Process Tool Call Deltas (Mutation Phase - Run ONCE)
+        if (delta.tool_calls) {
+           delta.tool_calls.forEach(tc => {
+              if (tc.id || !currentToolCalls[tc.index]) {
+                currentToolCalls[tc.index] = {
+                  id: tc.id || uuidv4(),
+                  type: 'function',
+                  function: { name: '', arguments: '' }
+                };
+              }
+              if (tc.function?.name) currentToolCalls[tc.index].function.name += tc.function.name;
+              if (tc.function?.arguments) currentToolCalls[tc.index].function.arguments += tc.function.arguments;
+           });
+        }
+
         updateLastMessage(prevMsg => {
           // 1. Shallow copy the message object
           const msg = { ...prevMsg };
-
-          // 2. Shallow copy the parts array to avoid mutating state
+          
+          // 2. Shallow copy the parts array
           msg.parts = msg.parts ? [...msg.parts] : [];
-
-          // Helper to get the last part (cloned if we need to modify it)
-          // Note: for object modification like `content +=`, we need to clone the object.
-          // For array push, we just need the cloned parts array.
-
+          
           const getLastPart = () => {
              if (msg.parts!.length === 0) return null;
              return msg.parts![msg.parts!.length - 1];
@@ -234,12 +245,8 @@ const App: React.FC = () => {
           // Handle Reasoning
           if (delta.reasoning_content) {
             const lastPart = getLastPart();
-
+            
             if (lastPart?.type === 'reasoning') {
-              // Mutating the CLONED part object in the array?
-              // We need to clone the object first if it comes from prev state.
-              // BUT, `getLastPart` returns a reference.
-              // To be purely immutable, we should replace it.
               const newPart = { ...lastPart, content: lastPart.content + delta.reasoning_content };
               msg.parts![msg.parts!.length - 1] = newPart;
             } else {
@@ -248,15 +255,12 @@ const App: React.FC = () => {
             msg.reasoning_content = (msg.reasoning_content || '') + delta.reasoning_content;
           }
 
-          // Handle Tool Calls
+          // Handle Tool Calls (Structural Phase)
           if (delta.tool_calls) {
-            console.log("delta.tool_calls:", delta.tool_calls)
             const lastPart = getLastPart();
             let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
-
+            
             if (lastPart?.type === 'tool_calls') {
-                // We will mutate toolPart.tool_calls array.
-                // So we should clone the part and the array.
                 toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
                 msg.parts![msg.parts!.length - 1] = toolPart;
             } else {
@@ -265,21 +269,14 @@ const App: React.FC = () => {
             }
 
             delta.tool_calls.forEach(tc => {
-              // Check if it's a new tool call (has ID) or a new index
-              if (tc.id || !currentToolCalls[tc.index]) {
-                currentToolCalls[tc.index] = {
-                  id: tc.id || uuidv4(),
-                  type: 'function',
-                  function: { name: '', arguments: '' }
-                };
-                toolPart.tool_calls.push(currentToolCalls[tc.index]);
-              }
-              // Mutate the tool call object (which is shared in currentToolCalls).
-              // This is a controlled side-effect as currentToolCalls is local to the stream scope.
-              if (tc.function?.name) currentToolCalls[tc.index].function.name += tc.function.name;
-              if (tc.function?.arguments) currentToolCalls[tc.index].function.arguments += tc.function.arguments;
+               // Ensure the current active tool call object is in the list.
+               // It might be a new object (created in step 1) or an existing one.
+               const activeTool = currentToolCalls[tc.index];
+               if (activeTool && !toolPart.tool_calls.includes(activeTool)) {
+                  toolPart.tool_calls.push(activeTool);
+               }
             });
-
+            
             msg.tool_calls = Object.values(currentToolCalls);
           }
 
