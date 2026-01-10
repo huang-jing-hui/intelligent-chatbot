@@ -172,7 +172,7 @@ const App: React.FC = () => {
       }]);
 
       // Prepare messages for API (handle multimodal)
-      const apiMessages = [...messages, userMsg].map(m => {
+      const apiMessages = [ userMsg].map(m => {
         if (m.attachments && m.attachments.length > 0) {
           const contentParts: any[] = [];
 
