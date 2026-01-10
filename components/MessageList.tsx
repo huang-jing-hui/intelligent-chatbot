@@ -21,8 +21,9 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
     <div className="flex-1 overflow-y-auto p-4 space-y-6">
       {messages.map((msg, index) => {
         const isUser = msg.role === 'user';
-        const isTool = msg.role === 'tool';
+        const isTool = msg.role === 'tool' || msg.role === 'tool_result';
         const isSystem = msg.role === 'system';
+        const isInterrupt = msg.role === 'interrupt';
 
         if (isSystem) return null; // Optionally hide system messages
 
@@ -30,10 +31,10 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
           <div key={msg.id || index} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
             {/* Avatar */}
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-              isUser ? 'bg-blue-600' : isTool ? 'bg-purple-600' : 'bg-emerald-600'
+              isUser ? 'bg-blue-600' : (isTool || isInterrupt) ? 'bg-purple-600' : 'bg-emerald-600'
             }`}>
               {isUser ? <User className="w-5 h-5 text-white" /> : 
-               isTool ? <Terminal className="w-4 h-4 text-white" /> : 
+               (isTool || isInterrupt) ? <Terminal className="w-4 h-4 text-white" /> : 
                <Bot className="w-5 h-5 text-white" />}
             </div>
 
@@ -103,10 +104,10 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     )}
 
                     {/* 4. Main Content */}
-                    {msg.content && (
+                    {(msg.content || (msg.tool_result && msg.tool_result.length > 0)) && (
                       <div className={isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>
                         {isTool ? (
-                           <ToolResultBlock content={msg.content} />
+                           <ToolResultBlock content={msg.tool_result?.[0]?.output || msg.content} />
                         ) : (
                            <MarkdownRenderer content={msg.content} className={isUser ? 'prose-invert' : ''}/>
                         )}

@@ -65,7 +65,29 @@ export const getChatMessages = async (chatId: string): Promise<Message[]> => {
   });
   const data = await response.json();
   if (data.status === 'success') {
-    return JSON.parse(data.data);
+    const rawMessages = JSON.parse(data.data);
+    return rawMessages.map((item: any) => {
+      try {
+        const innerMsg = JSON.parse(item.message);
+        const choice = innerMsg.choices[0];
+        const delta = choice.delta;
+        
+        return {
+          id: innerMsg.id,
+          role: delta.role,
+          content: delta.content || '',
+          reasoning_content: delta.reasoning_content,
+          tool_calls: delta.tool_calls,
+          // Normalize single tool_result object to array if present
+          tool_result: delta.tool_result ? [delta.tool_result] : undefined,
+          interrupt_info: delta.interrupt_info,
+          timestamp: innerMsg.created * 1000
+        };
+      } catch (e) {
+        console.warn("Failed to parse message item", item, e);
+        return null;
+      }
+    }).filter((msg: any) => msg !== null);
   }
   return [];
 };

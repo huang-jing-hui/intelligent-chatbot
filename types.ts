@@ -13,7 +13,7 @@ export type MessagePart =
 
 export interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'tool' | 'system';
+  role: 'user' | 'assistant' | 'tool' | 'system' | 'tool_result' | 'interrupt';
   content: string;
   reasoning_content?: string;
   tool_calls?: ToolCall[];
