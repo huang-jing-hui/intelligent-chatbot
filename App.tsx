@@ -72,7 +72,10 @@ const App: React.FC = () => {
   const handleDeleteChat = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await deleteChat(id);
+      const response = await deleteChat(id);
+      if (!response.ok) {
+        throw new Error(`Failed to delete chat: ${response.status} ${response.statusText}`);
+      }
 
       if (currentSessionId === id) {
         createNewChat();
@@ -212,35 +215,53 @@ const App: React.FC = () => {
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
-        updateLastMessage(msg => {
-          // Initialize parts if missing (safety)
-          if (!msg.parts) msg.parts = [];
+        updateLastMessage(prevMsg => {
+          // 1. Shallow copy the message object
+          const msg = { ...prevMsg };
 
-          const lastPart = msg.parts[msg.parts.length - 1];
+          // 2. Shallow copy the parts array to avoid mutating state
+          msg.parts = msg.parts ? [...msg.parts] : [];
+
+          // Helper to get the last part (cloned if we need to modify it)
+          // Note: for object modification like `content +=`, we need to clone the object.
+          // For array push, we just need the cloned parts array.
+
+          const getLastPart = () => {
+             if (msg.parts!.length === 0) return null;
+             return msg.parts![msg.parts!.length - 1];
+          };
 
           // Handle Reasoning
           if (delta.reasoning_content) {
+            const lastPart = getLastPart();
+
             if (lastPart?.type === 'reasoning') {
-              lastPart.content += delta.reasoning_content;
+              // Mutating the CLONED part object in the array?
+              // We need to clone the object first if it comes from prev state.
+              // BUT, `getLastPart` returns a reference.
+              // To be purely immutable, we should replace it.
+              const newPart = { ...lastPart, content: lastPart.content + delta.reasoning_content };
+              msg.parts![msg.parts!.length - 1] = newPart;
             } else {
-              msg.parts.push({ type: 'reasoning', content: delta.reasoning_content });
+              msg.parts!.push({ type: 'reasoning', content: delta.reasoning_content });
             }
-            // Maintain legacy
             msg.reasoning_content = (msg.reasoning_content || '') + delta.reasoning_content;
           }
 
           // Handle Tool Calls
           if (delta.tool_calls) {
+            console.log("delta.tool_calls:", delta.tool_calls)
+            const lastPart = getLastPart();
             let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
 
-            // Check if we are currently appending to a tool call block
-            // Note: We only append to the last part if it is tool_calls AND the model hasn't switched contexts
-            // But here we rely on the stream order.
             if (lastPart?.type === 'tool_calls') {
-                toolPart = lastPart as { type: 'tool_calls', tool_calls: ToolCall[] };
+                // We will mutate toolPart.tool_calls array.
+                // So we should clone the part and the array.
+                toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
+                msg.parts![msg.parts!.length - 1] = toolPart;
             } else {
                 toolPart = { type: 'tool_calls', tool_calls: [] };
-                msg.parts.push(toolPart);
+                msg.parts!.push(toolPart);
             }
 
             delta.tool_calls.forEach(tc => {
@@ -250,25 +271,26 @@ const App: React.FC = () => {
                   type: 'function',
                   function: { name: '', arguments: '' }
                 };
-                // Add reference to the current part's list
                 toolPart.tool_calls.push(currentToolCalls[tc.index]);
               }
+              // Mutate the tool call object (which is shared in currentToolCalls).
+              // This is a controlled side-effect as currentToolCalls is local to the stream scope.
               if (tc.function?.name) currentToolCalls[tc.index].function.name += tc.function.name;
               if (tc.function?.arguments) currentToolCalls[tc.index].function.arguments += tc.function.arguments;
             });
 
-            // Legacy update
             msg.tool_calls = Object.values(currentToolCalls);
           }
 
           // Handle Content
           if (delta.content) {
+            const lastPart = getLastPart();
             if (lastPart?.type === 'text') {
-              lastPart.content += delta.content;
+               const newPart = { ...lastPart, content: lastPart.content + delta.content };
+               msg.parts![msg.parts!.length - 1] = newPart;
             } else {
-              msg.parts.push({ type: 'text', content: delta.content });
+               msg.parts!.push({ type: 'text', content: delta.content });
             }
-            // Legacy
             msg.content += delta.content;
           }
 
