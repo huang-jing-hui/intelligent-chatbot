@@ -89,10 +89,13 @@ interface InterruptBlockProps {
   info: InterruptInfo;
   onRespond: (response: string) => void;
   isResponded: boolean;
+  isActive: boolean; // New prop
 }
 
-export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond, isResponded }) => {
+export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond, isResponded, isActive }) => {
   const [inputValue, setInputValue] = useState('');
+
+  const isDisabled = isResponded || !isActive; // Disable if already responded OR not the active interrupt
 
   if (isResponded) {
      return (
@@ -118,6 +121,7 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
               <button
                 onClick={() => onRespond('yes')}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+                disabled={isDisabled}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Yes, Approve
@@ -125,6 +129,7 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
               <button
                 onClick={() => onRespond('no')}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
+                disabled={isDisabled}
               >
                 <XCircle className="w-4 h-4" />
                 No, Reject
@@ -143,10 +148,12 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
                   placeholder="Enter your input..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
+                  disabled={isDisabled}
                 />
                 <button 
                     type="submit"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors"
+                    disabled={isDisabled}
                 >
                     Submit
                 </button>

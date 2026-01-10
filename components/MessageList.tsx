@@ -147,6 +147,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     info={msg.interrupt_info} 
                     onRespond={onInterruptResponse}
                     isResponded={!!msg.interrupted} // Logic to check if this specific interrupt has been handled
+                    isActive={index === messages.length - 1} // Pass isActive prop
                   />
                 )}
               </div>
