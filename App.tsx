@@ -265,7 +265,8 @@ const App: React.FC = () => {
             }
 
             delta.tool_calls.forEach(tc => {
-              if (!currentToolCalls[tc.index]) {
+              // Check if it's a new tool call (has ID) or a new index
+              if (tc.id || !currentToolCalls[tc.index]) {
                 currentToolCalls[tc.index] = {
                   id: tc.id || uuidv4(),
                   type: 'function',
