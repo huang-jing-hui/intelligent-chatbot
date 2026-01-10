@@ -76,6 +76,18 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                         return <ReasoningBlock key={idx} content={part.content} />;
                       } else if (part.type === 'tool_calls') {
                         return <ToolCallsBlock key={idx} calls={part.tool_calls} />;
+                      } else if (part.type === 'tool_result') {
+                        return (
+                          <div key={idx} className="space-y-2">
+                            {part.tool_result.map((res, rIdx) => (
+                              <ToolResultBlock 
+                                key={rIdx} 
+                                content={res.output} 
+                                toolName={res.name} 
+                              />
+                            ))}
+                          </div>
+                        );
                       } else if (part.type === 'text') {
                          return (
                            <div key={idx} className={isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>
@@ -103,11 +115,24 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                       <ToolCallsBlock calls={msg.tool_calls} />
                     )}
 
-                    {/* 4. Main Content */}
-                    {(msg.content || (msg.tool_result && msg.tool_result.length > 0)) && (
+                    {/* 4. Tool Results (Legacy) */}
+                    {msg.tool_result && msg.tool_result.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {msg.tool_result.map((res, rIdx) => (
+                          <ToolResultBlock 
+                            key={rIdx} 
+                            content={res.output} 
+                            toolName={res.name} 
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 5. Main Content */}
+                    {msg.content && (
                       <div className={isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>
                         {isTool ? (
-                           <ToolResultBlock content={msg.tool_result?.[0]?.output || msg.content} />
+                           <ToolResultBlock content={msg.content} />
                         ) : (
                            <MarkdownRenderer content={msg.content} className={isUser ? 'prose-invert' : ''}/>
                         )}

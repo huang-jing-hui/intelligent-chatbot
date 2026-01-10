@@ -29,35 +29,58 @@ export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
 };
 
 export const ToolCallsBlock: React.FC<{ calls: ToolCall[] }> = ({ calls }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   if (!calls || calls.length === 0) return null;
 
   return (
-    <div className="my-2 flex flex-col gap-2">
-      {calls.map((call, idx) => (
-        <div key={idx} className="border border-purple-200 dark:border-purple-800 rounded-md overflow-hidden bg-purple-50 dark:bg-purple-900/10">
-          <div className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-xs font-medium text-purple-700 dark:text-purple-300 flex items-center gap-2">
-            <Wrench className="w-3.5 h-3.5" />
-            Tool Call: {call.function.name}
-          </div>
-          <div className="px-3 py-2 text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">
-            {call.function.arguments}
-          </div>
+    <div className="my-2 border border-purple-200 dark:border-purple-800 rounded-lg overflow-hidden bg-purple-50 dark:bg-purple-900/10">
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+      >
+        <Wrench className="w-3.5 h-3.5" />
+        <span>Tool Calls ({calls.length})</span>
+        {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
+      </button>
+
+      {isExpanded && (
+        <div className="flex flex-col gap-2 p-2 border-t border-purple-200 dark:border-purple-800">
+          {calls.map((call, idx) => (
+            <div key={idx} className="border border-purple-200 dark:border-purple-800 rounded-md overflow-hidden bg-white/50 dark:bg-black/20">
+              <div className="px-3 py-1.5 bg-purple-100/50 dark:bg-purple-900/20 text-xs font-medium text-purple-700 dark:text-purple-300">
+                 {call.function.name}
+              </div>
+              <div className="px-3 py-2 text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">
+                {call.function.arguments}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 };
 
 export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> = ({ content, toolName }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <div className="my-2 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden bg-gray-50 dark:bg-gray-800/50">
-      <div className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-400 flex items-center gap-2">
+    <div className="my-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800/50">
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      >
         <Terminal className="w-3.5 h-3.5" />
-        Tool Result
-      </div>
-      <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 font-mono">
-        <MarkdownRenderer content={content} />
-      </div>
+        <span>Tool Result</span>
+        {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
+      </button>
+      
+      {isExpanded && (
+        <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 font-mono border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-black/20">
+          <MarkdownRenderer content={content} />
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Send, Menu, Paperclip, X, Image as ImageIcon } from 'lucide-react';
-import { Message, ChatSession, StreamChunk, ToolCall, Attachment } from './types';
+import {Message, ChatSession, StreamChunk, ToolCall, Attachment, ToolResult} from './types';
 import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat } from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
@@ -255,34 +255,51 @@ const App: React.FC = () => {
             msg.reasoning_content = (msg.reasoning_content || '') + delta.reasoning_content;
           }
 
-          // Handle Tool Calls (Structural Phase)
-          if (delta.tool_calls) {
-            const lastPart = getLastPart();
-            let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
+                    // Handle Tool Calls (Structural Phase)
+                    if (delta.tool_calls) {
+                      const lastPart = getLastPart();
+                      let toolPart: { type: 'tool_calls', tool_calls: ToolCall[] };
 
-            if (lastPart?.type === 'tool_calls') {
-                toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
-                msg.parts![msg.parts!.length - 1] = toolPart;
-            } else {
-                toolPart = { type: 'tool_calls', tool_calls: [] };
-                msg.parts!.push(toolPart);
-            }
+                      if (lastPart?.type === 'tool_calls') {
+                          toolPart = { ...lastPart, tool_calls: [...(lastPart as any).tool_calls] } as any;
+                          msg.parts![msg.parts!.length - 1] = toolPart;
+                      } else {
+                          toolPart = { type: 'tool_calls', tool_calls: [] };
+                          msg.parts!.push(toolPart);
+                      }
 
-            delta.tool_calls.forEach(tc => {
-               // Ensure the current active tool call object is in the list.
-               // It might be a new object (created in step 1) or an existing one.
-               const activeTool = currentToolCalls[tc.index];
-               if (activeTool && !toolPart.tool_calls.includes(activeTool)) {
-                  toolPart.tool_calls.push(activeTool);
-               }
-            });
+                      delta.tool_calls.forEach(tc => {
+                         const activeTool = currentToolCalls[tc.index];
+                         if (activeTool && !toolPart.tool_calls.includes(activeTool)) {
+                            toolPart.tool_calls.push(activeTool);
+                         }
+                      });
 
-            msg.tool_calls = Object.values(currentToolCalls);
-          }
+                      msg.tool_calls = Object.values(currentToolCalls);
+                    }
 
-          // Handle Content
-          if (delta.content) {
-            const lastPart = getLastPart();
+                    // Handle Tool Results
+                    if (delta.tool_result) {
+                      const lastPart = getLastPart();
+                      let resultPart: { type: 'tool_result', tool_result: ToolResult[] };
+
+                      if (lastPart?.type === 'tool_result') {
+                           resultPart = { ...lastPart, tool_result: [...(lastPart as any).tool_result] } as any;
+                           msg.parts![msg.parts!.length - 1] = resultPart;
+                      } else {
+                           resultPart = { type: 'tool_result', tool_result: [] };
+                           msg.parts!.push(resultPart);
+                      }
+
+                      resultPart.tool_result.push(delta.tool_result);
+
+                                  // Legacy update
+                                  msg.tool_result = msg.tool_result ? [...msg.tool_result] : [];
+                                  msg.tool_result.push(delta.tool_result);
+                                }
+
+                                // Handle Content
+                                if (delta.content) {            const lastPart = getLastPart();
             if (lastPart?.type === 'text') {
                const newPart = { ...lastPart, content: lastPart.content + delta.content };
                msg.parts![msg.parts!.length - 1] = newPart;

@@ -65,6 +65,7 @@ export interface StreamChunk {
         reasoning_content?: string;
         content?: string;
         tool_calls?: ToolCallChunk[];
+        tool_result?: ToolResult;
         interrupt_info?: InterruptInfo;
       };
       finish_reason?: 'stop' | 'tool_calls' | 'interrupt' | null;
