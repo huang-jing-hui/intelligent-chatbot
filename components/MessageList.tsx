@@ -101,18 +101,18 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                 {msg.attachments && msg.attachments.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {msg.attachments.map((att) => (
-                      <div key={att.id} className="relative rounded-lg overflow-hidden bg-black/10 dark:bg-white/10">
+                      <div key={att.id} className="relative rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 max-w-xs">
                         {att.type === 'image' ? (
                           <img 
                             src={att.url} 
                             alt="attachment" 
-                            className="max-w-full max-h-64 object-contain rounded-lg" 
+                            className="w-full max-h-48 object-contain rounded-lg" 
                           />
                         ) : (
                           <video 
                             src={att.url} 
                             controls 
-                            className="max-w-full max-h-64 rounded-lg" 
+                            className="w-full max-h-48 rounded-lg" 
                           />
                         )}
                       </div>

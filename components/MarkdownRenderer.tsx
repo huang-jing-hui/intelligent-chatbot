@@ -39,6 +39,13 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
+          // Limit image size in Markdown
+          img: ({node, ...props}) => (
+            <img 
+              className="max-w-xs max-h-48 object-contain rounded-lg shadow-sm my-2" 
+              {...props} 
+            />
+          ),
           // Table rendering with forced visible borders and better spacing
           table: ({node, ...props}) => (
             <div className="my-6 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
