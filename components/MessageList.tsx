@@ -169,19 +169,17 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                         if (part.type === 'reasoning') {
                             renderBlocks.push(wrapInBubble(<ReasoningBlock content={part.content} />, key));
                         } else if (part.type === 'tool_calls') {
-                            renderBlocks.push(wrapInBubble(<ToolCallsBlock calls={part.tool_calls} />, key));
+                            part.tool_calls.forEach((call, tcIdx) => {
+                                renderBlocks.push(wrapInBubble(<ToolCallsBlock calls={[call]} />, `${key}-tc${tcIdx}`));
+                            });
                         } else if (part.type === 'tool_result') {
-                            // Check if any result is valid before rendering the bubble
-                            const validResults = part.tool_result.filter(res => !isToolResultEmpty(res.output, res.name));
-                            if (validResults.length > 0) {
-                                renderBlocks.push(wrapInBubble(
-                                    <div className="space-y-2">
-                                        {part.tool_result.map((res, rIdx) => (
-                                            <ToolResultBlock key={rIdx} content={res.output} toolName={res.name} />
-                                        ))}
-                                    </div>
-                                , key));
-                            }
+                            part.tool_result.forEach((res, rIdx) => {
+                                if (!isToolResultEmpty(res.output, res.name)) {
+                                    renderBlocks.push(wrapInBubble(
+                                        <ToolResultBlock content={res.output} toolName={res.name} />
+                                    , `${key}-tr${rIdx}`));
+                                }
+                            });
                         } else if (part.type === 'text') {
                             if (msg.role === 'tool' || msg.role === 'tool_result') {
                                 // Fallback if 'text' part is used for tool result? Unlikely based on types, but safe handling
@@ -203,20 +201,19 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     }
                     // Tool Calls
                     if (msg.tool_calls && msg.tool_calls.length > 0) {
-                        renderBlocks.push(wrapInBubble(<ToolCallsBlock calls={msg.tool_calls} />, `${msg.id}-calls`));
+                        msg.tool_calls.forEach((call, tcIdx) => {
+                            renderBlocks.push(wrapInBubble(<ToolCallsBlock calls={[call]} />, `${msg.id}-call-${tcIdx}`));
+                        });
                     }
                     // Tool Results
                     if (msg.tool_result && msg.tool_result.length > 0) {
-                         const validResults = msg.tool_result.filter(res => !isToolResultEmpty(res.output, res.name));
-                         if (validResults.length > 0) {
-                             renderBlocks.push(wrapInBubble(
-                                <div className="space-y-2">
-                                    {msg.tool_result.map((res, rIdx) => (
-                                        <ToolResultBlock key={rIdx} content={res.output} toolName={res.name} />
-                                    ))}
-                                </div>
-                             , `${msg.id}-results`));
-                         }
+                        msg.tool_result.forEach((res, rIdx) => {
+                             if (!isToolResultEmpty(res.output, res.name)) {
+                                renderBlocks.push(wrapInBubble(
+                                    <ToolResultBlock content={res.output} toolName={res.name} />
+                                , `${msg.id}-res-${rIdx}`));
+                             }
+                        });
                     }
                     // Content
                     if (msg.content) {

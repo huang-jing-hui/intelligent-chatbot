@@ -29,33 +29,34 @@ export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
 };
 
 export const ToolCallsBlock: React.FC<{ calls: ToolCall[] }> = ({ calls }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   if (!calls || calls.length === 0) return null;
 
   return (
-    <div className="my-2 border border-purple-200 dark:border-purple-800 rounded-lg overflow-hidden bg-purple-50 dark:bg-purple-900/10">
+    <div className="flex flex-col gap-2 w-full">
+      {calls.map((call, idx) => (
+        <ToolCallItem key={call.id || idx} call={call} />
+      ))}
+    </div>
+  );
+};
+
+const ToolCallItem: React.FC<{ call: ToolCall }> = ({ call }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="border border-purple-200 dark:border-purple-800 rounded-lg overflow-hidden bg-purple-50 dark:bg-purple-900/10">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
       >
         <Wrench className="w-3.5 h-3.5" />
-        <span>Tool Calls ({calls.length})</span>
-        {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
+        <span className="truncate">{call.function.name}</span>
+        {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto shrink-0" /> : <ChevronRight className="w-3 h-3 ml-auto shrink-0" />}
       </button>
 
       {isExpanded && (
-        <div className="flex flex-col gap-2 p-2 border-t border-purple-200 dark:border-purple-800">
-          {calls.map((call, idx) => (
-            <div key={idx} className="border border-purple-200 dark:border-purple-800 rounded-md overflow-hidden bg-white/50 dark:bg-black/20">
-              <div className="px-3 py-1.5 bg-purple-100/50 dark:bg-purple-900/20 text-xs font-medium text-purple-700 dark:text-purple-300">
-                 {call.function.name}
-              </div>
-              <div className="px-3 py-2 text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto">
-                {call.function.arguments}
-              </div>
-            </div>
-          ))}
+        <div className="px-3 py-2 text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
+          {call.function.arguments}
         </div>
       )}
     </div>
@@ -69,7 +70,7 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
   let isUrl = false;
   let isImage = false;
   let isVideo = false;
-  
+
   // Clean up toolName for display/logic
   const displayToolName = toolName && toolName.trim() !== '' && toolName.toLowerCase() !== 'unknown' ? toolName : null;
 
@@ -78,7 +79,7 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
     // If it's a simple JSON object for status or empty data, set processedContent to empty string
     // This allows the block to be hidden if there's no useful info
     if (Object.keys(parsed).length === 0 || (parsed.status && Object.keys(parsed).length === 1 && !parsed.content && !parsed.results)) {
-        processedContent = ''; 
+        processedContent = '';
     } else {
         processedContent = JSON.stringify(parsed, null, 2); // Pretty print JSON
     }
@@ -108,15 +109,15 @@ export const ToolResultBlock: React.FC<{ content: string, toolName?: string }> =
 
   return (
     <div className="my-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800/50">
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       >
         <Terminal className="w-3.5 h-3.5" />
-        <span>Tool Result {displayToolName ? `: ${displayToolName}` : ''}</span>
+        <span>{displayToolName ? `: ${displayToolName}` : ''} complete</span>
         {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto" /> : <ChevronRight className="w-3 h-3 ml-auto" />}
       </button>
-      
+
       {isExpanded && (
         <div className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 font-mono border-t border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-black/20">
           {isImage ? (
