@@ -95,6 +95,8 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
+          // Avoid default 'pre' styling from Tailwind Typography
+          pre: ({ children }) => <>{children}</>,
           img: ({node, ...props}) => (
             <img 
               className="max-w-xs max-h-48 object-contain rounded-lg shadow-sm my-2" 
