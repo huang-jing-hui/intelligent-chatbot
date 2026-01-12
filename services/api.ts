@@ -71,7 +71,7 @@ export const getChatMessages = async (chatId: string): Promise<Message[]> => {
         const innerMsg = JSON.parse(item.message);
         const choice = innerMsg.choices[0];
         const delta = choice.delta;
-        
+
         return {
           id: innerMsg.id,
           role: delta.role,
@@ -128,4 +128,21 @@ export const deleteChat = async (chatId: string) => {
           }
     })
   });
+};
+
+export const uploadFile = async (url: string): Promise<string> => {
+  // 上传文件，传入base64 url，返回上传后文件url
+  const response = await fetch(`${API_BASE_URL}/v1/file/upload`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      "file_base64": url
+    })
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data.url;
+  } else {
+    throw new Error(`上传失败: ${data.message || '未知错误'}`);
+  }
 };

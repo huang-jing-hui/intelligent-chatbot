@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Send, Menu, Paperclip, X, Image as ImageIcon, Maximize2, Minimize2 } from 'lucide-react';
 import {Message, ChatSession, StreamChunk, ToolCall, Attachment, ToolResult} from './types';
-import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat } from './services/api';
+import {streamChatCompletion, getChatTitles, getChatMessages, deleteChat, uploadFile} from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 
@@ -133,14 +133,19 @@ const App: React.FC = () => {
       if (isImage || isVideo) {
         try {
           const url = await readFileAsDataURL(file);
+          const http_url = await uploadFile(url);
           newAttachments.push({
             id: uuidv4(),
             type: isImage ? 'image' : 'video',
-            url,
+            url: http_url,
             name: file.name
           });
         } catch (err) {
           console.error("Failed to read file", err);
+          // 添加用户友好的错误提示
+          alert(`文件上传失败: ${err instanceof Error ? err.message : '未知错误'}`);
+          // 或者使用更优雅的UI提示方式，如Toast通知
+          // showToast(`文件上传失败: ${err instanceof Error ? err.message : '未知错误'}
         }
       }
     }
@@ -365,7 +370,7 @@ const App: React.FC = () => {
     <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -375,7 +380,7 @@ const App: React.FC = () => {
       <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${ 
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <Sidebar 
+        <Sidebar
           sessions={sessions}
           currentSessionId={currentSessionId}
           onSelectSession={setCurrentSessionId}
@@ -411,7 +416,7 @@ const App: React.FC = () => {
         />
 
         {/* Input Area */}
-        <div 
+        <div
             className={`p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black transition-all duration-300 ease-in-out ${ 
                 isInputExpanded ? 'h-[50vh]' : 'h-auto'
             }`}
@@ -419,9 +424,9 @@ const App: React.FC = () => {
           <div className={`relative flex flex-col h-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus-within:border-blue-500/50 rounded-xl overflow-hidden transition-all ${ 
               isInputExpanded ? 'p-4' : 'p-2'
           }`}>
-            
+
              {/* Top Toolbar (Visible only when expanded, or always? Let's keep it simple) */}
-             
+
              {/* Attachment Preview */}
              {attachments.length > 0 && (
                <div className="flex gap-3 mb-3 overflow-x-auto pb-2 shrink-0">
@@ -504,7 +509,7 @@ const App: React.FC = () => {
              </div>
 
           </div>
-          
+
           {!isInputExpanded && (
              <p className="text-center text-xs text-gray-400 mt-2">
                AI can make mistakes. Please verify important information.
