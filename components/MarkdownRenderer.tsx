@@ -60,7 +60,7 @@ const CodeBlock = ({ language, value }: { language: string; value: string }) => 
   );
 };
 
-export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
+export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, className }) => {
   // Ensure content is a string to prevent crashes
   if (typeof content !== 'string') {
     if (!content) return null;
@@ -134,4 +134,4 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
       </ReactMarkdown>
     </article>
   );
-};
+});
