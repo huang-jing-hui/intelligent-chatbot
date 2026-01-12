@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Message, MessagePart, ToolCall, ToolResult, Attachment } from '../types';
 import { ReasoningBlock, ToolCallsBlock, ToolResultBlock, InterruptBlock } from './MessageBlocks';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { User, Bot, Terminal } from 'lucide-react';
+import { User, Bot, Terminal, X, Download } from 'lucide-react';
 
 interface Props {
   messages: Message[];
@@ -29,6 +29,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
   const lastMessagesLength = useRef(messages.length);
   const isAutoScrolling = useRef(true);
   const isInitialLoad = useRef(true);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video', name?: string } | null>(null);
 
   // Group messages logic
   const groupedMessages = useMemo(() => {
@@ -112,9 +113,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
         return (
           <div key={`group-${groupIndex}`} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
             {/* Avatar */}
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-              isUser ? 'bg-blue-600' : 'bg-emerald-600'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isUser ? 'bg-blue-600' : 'bg-emerald-600'}`}>
               {isUser ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
             </div>
 
@@ -124,37 +123,48 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
               {group.messages.map((msg, msgIndex) => {
                 const renderBlocks: React.ReactNode[] = [];
 
-                // 1. Attachments
-                if (msg.attachments && msg.attachments.length > 0) {
-                   renderBlocks.push(
-                     <div key={`att-${msg.id}`} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${
-                        isUser ? 'bg-blue-600' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'
-                     }`}>
-                        <div className="flex flex-wrap gap-2">
-                            {msg.attachments.map((att) => (
-                            <div key={att.id} className="relative rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 max-w-xs">
-                                {att.type === 'image' ? (
-                                <img src={att.url} alt="attachment" className="w-full max-h-48 object-contain rounded-lg" />
-                                ) : (
-                                <video src={att.url} controls className="w-full max-h-48 rounded-lg" />
-                                )}
-                            </div>
-                            ))}
-                        </div>
-                     </div>
-                   );
-                }
-
                 // Helper for Text Bubbles ONLY
                 const wrapInTextBubble = (content: React.ReactNode, key: string) => (
-                    <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${
-                        isUser 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'
-                    }`}>
+                    <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
                         {content}
                     </div>
                 );
+
+                // Helper to render media grid
+                const renderMediaGrid = (mediaItems: { url: string, type: 'image' | 'video', name?: string }[], keyPrefix: string) => {
+                    if (!mediaItems || mediaItems.length === 0) return null;
+                    
+                    const content = (
+                        <div className="flex flex-wrap gap-2">
+                            {mediaItems.map((item, idx) => (
+                                <div 
+                                    key={`${keyPrefix}-${idx}`} 
+                                    className="relative rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 w-24 h-24 shrink-0 cursor-pointer hover:opacity-90 transition-opacity border border-gray-200 dark:border-gray-700"
+                                    onClick={() => setPreviewMedia(item)}
+                                >
+                                    {item.type === 'image' ? (
+                                        <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <video src={item.url} className="w-full h-full object-cover" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    );
+                    
+                    // Wrap in bubble to match text style
+                    return (
+                       <div key={keyPrefix} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${isUser ? 'bg-blue-600' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'}`}>
+                          {content}
+                       </div>
+                    );
+                };
+
+                // 1. Attachments (Legacy/Local)
+                if (msg.attachments && msg.attachments.length > 0) {
+                   const mediaItems = msg.attachments.map(att => ({ url: att.url, type: att.type, name: att.name }));
+                   renderBlocks.push(renderMediaGrid(mediaItems, `att-${msg.id}`));
+                }
 
                 const cleanText = (text: string) => {
                     if (!text) return '';
@@ -168,39 +178,30 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
 
                 const renderMultimodalContent = (content: any, msgId: string) => {
                     if (typeof content === 'string') {
+                        const cleaned = cleanText(content);
+                        if (!cleaned) return null;
                         return wrapInTextBubble(
-                            <MarkdownRenderer content={cleanText(content)} className={isUser ? 'prose-invert' : ''} />
+                            <MarkdownRenderer content={cleaned} className={isUser ? 'prose-invert' : ''} />
                         , `${msgId}-content`);
                     }
 
                     if (Array.isArray(content)) {
+                        const mediaParts = content.filter(p => p.type === 'image_url' || p.type === 'video_url').map(p => ({
+                            url: p.type === 'image_url' ? p.image_url.url : p.video_url.url,
+                            type: (p.type === 'image_url' ? 'image' : 'video') as 'image' | 'video',
+                            name: 'media'
+                        }));
+                        const textParts = content.filter(p => p.type === 'text');
+                        
                         return (
-                            <div key={`${msgId}-multimodal`} className="space-y-3 w-full">
-                                {content.map((part, pIdx) => {
-                                    if (part.type === 'text') {
-                                        const text = cleanText(part.text || part.content || '');
-                                        if (!text) return null;
-                                        return wrapInTextBubble(
-                                            <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
-                                        , `${msgId}-part-${pIdx}`);
-                                    }
-                                    if (part.type === 'image_url') {
-                                        const content = (
-                                            <div className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
-                                                <img src={part.image_url.url} alt="content image" className="w-full h-auto max-h-96 object-contain bg-black/5" />
-                                            </div>
-                                        );
-                                        return wrapInTextBubble(content, `${msgId}-part-${pIdx}`);
-                                    }
-                                    if (part.type === 'video_url') {
-                                        const content = (
-                                            <div className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
-                                                <video src={part.video_url.url} controls className="w-full h-auto max-h-96 bg-black/5" />
-                                            </div>
-                                        );
-                                        return wrapInTextBubble(content, `${msgId}-part-${pIdx}`);
-                                    }
-                                    return null;
+                            <div key={`${msgId}-multimodal`} className="space-y-2 w-full">
+                                {renderMediaGrid(mediaParts, `${msgId}-media`)}
+                                {textParts.map((p, i) => {
+                                    const text = cleanText(p.text || p.content || '');
+                                    if (!text) return null;
+                                    return wrapInTextBubble(
+                                        <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
+                                    , `${msgId}-txt-${i}`);
                                 })}
                             </div>
                         );
@@ -309,6 +310,40 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewMedia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setPreviewMedia(null)}>
+           <div className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
+              <button 
+                  onClick={() => setPreviewMedia(null)}
+                  className="absolute -top-12 right-0 text-white hover:text-gray-300 p-2"
+              >
+                  <X className="w-8 h-8" />
+              </button>
+
+              <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800 w-auto h-auto flex justify-center items-center">
+                 {previewMedia.type === 'image' ? (
+                     <img src={previewMedia.url} alt={previewMedia.name} className="max-w-full max-h-[80vh] object-contain" />
+                 ) : (
+                     <video src={previewMedia.url} controls className="max-w-full max-h-[80vh]" />
+                 )}
+              </div>
+              
+              <div className="flex gap-4 mt-4">
+                  <a 
+                    href={previewMedia.url} 
+                    download={previewMedia.name || 'media'}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-full font-medium transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                      <Download className="w-4 h-4" />
+                      Download
+                  </a>
               </div>
            </div>
         </div>
