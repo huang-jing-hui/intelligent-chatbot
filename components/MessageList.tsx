@@ -156,6 +156,56 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     </div>
                 );
 
+                const cleanText = (text: string) => {
+                    if (!text) return '';
+                    const marker = '\n\n【用户上传的素材库】:';
+                    const index = text.indexOf(marker);
+                    if (index !== -1) {
+                        return text.substring(0, index);
+                    }
+                    return text;
+                };
+
+                const renderMultimodalContent = (content: any, msgId: string) => {
+                    if (typeof content === 'string') {
+                        return wrapInTextBubble(
+                            <MarkdownRenderer content={cleanText(content)} className={isUser ? 'prose-invert' : ''} />
+                        , `${msgId}-content`);
+                    }
+
+                    if (Array.isArray(content)) {
+                        return (
+                            <div key={`${msgId}-multimodal`} className="space-y-3 w-full">
+                                {content.map((part, pIdx) => {
+                                    if (part.type === 'text') {
+                                        const text = cleanText(part.text || part.content || '');
+                                        if (!text) return null;
+                                        return wrapInTextBubble(
+                                            <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
+                                        , `${msgId}-part-${pIdx}`);
+                                    }
+                                    if (part.type === 'image_url') {
+                                        return (
+                                            <div key={`${msgId}-part-${pIdx}`} className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+                                                <img src={part.image_url.url} alt="content image" className="w-full h-auto max-h-96 object-contain bg-black/5" />
+                                            </div>
+                                        );
+                                    }
+                                    if (part.type === 'video_url') {
+                                        return (
+                                            <div key={`${msgId}-part-${pIdx}`} className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+                                                <video src={part.video_url.url} controls className="w-full h-auto max-h-96 bg-black/5" />
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                        );
+                    }
+                    return null;
+                };
+
                 // Helper for Naked Blocks (No Bubble, just the component)
                 // These components (Reasoning, ToolCalls, ToolResult) already have their own borders/backgrounds.
                 // We add 'w-full' to ensure they take available width in the flex column.
@@ -189,9 +239,8 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                                     renderBlocks.push(renderNakedBlock(<ToolResultBlock content={part.content} />, key));
                                 }
                             } else {
-                                renderBlocks.push(wrapInTextBubble(
-                                    <MarkdownRenderer content={part.content} className={isUser ? 'prose-invert' : ''} />
-                                , key));
+                                // Multimodal check inside parts if content is not just a string
+                                renderBlocks.push(renderMultimodalContent(part.content, key));
                             }
                         }
                     });
@@ -224,9 +273,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                                 renderBlocks.push(renderNakedBlock(<ToolResultBlock content={msg.content} />, `${msg.id}-content`));
                              }
                         } else {
-                            renderBlocks.push(wrapInTextBubble(
-                                <MarkdownRenderer content={msg.content} className={isUser ? 'prose-invert' : ''} />
-                            , `${msg.id}-content`));
+                            renderBlocks.push(renderMultimodalContent(msg.content, msg.id));
                         }
                     }
                 }

@@ -13,6 +13,25 @@ interface Props {
 }
 
 export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
+  // Ensure content is a string to prevent crashes
+  if (typeof content !== 'string') {
+    // If content is falsy, return null
+    if (!content) return null;
+    
+    // If it's an array or object, try to render it responsibly or fallback
+    console.warn('MarkdownRenderer received non-string content:', content);
+    
+    // Attempt to convert to string if it's a number or simple type
+    if (typeof content === 'number') {
+        content = String(content);
+    } else {
+        // If it's complex (like an array from a multimodal message), 
+        // we probably shouldn't be rendering it as Markdown text directly here.
+        // Return null to avoid rendering "[object Object]"
+        return null;
+    }
+  }
+
   // Safe Pre-processing
   const processedContent = content
     // Fix block math \[ \] -> $$
