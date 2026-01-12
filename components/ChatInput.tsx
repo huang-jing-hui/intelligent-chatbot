@@ -1,0 +1,248 @@
+import React, { useState, useRef, useCallback } from 'react';
+import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, Image as ImageIcon } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+import { Attachment } from '../types';
+
+interface PendingAttachment extends Attachment {
+  isLoading: boolean;
+}
+
+interface ChatInputProps {
+  onSendMessage: (content: string, attachments: Attachment[]) => void;
+  isLoading: boolean;
+}
+
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [previewAttachment, setPreviewAttachment] = useState<PendingAttachment | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processFiles = async (files: File[]) => {
+    const newPendingAttachments: PendingAttachment[] = files.map(file => ({
+      id: uuidv4(),
+      type: file.type.startsWith('image/') ? 'image' : 'video',
+      url: '', // Will be filled later
+      name: file.name,
+      isLoading: true
+    }));
+
+    // Add placeholders immediately
+    setAttachments(prev => [...prev, ...newPendingAttachments]);
+
+    // Process each file
+    newPendingAttachments.forEach(async (att, index) => {
+        const file = files[index]; // Map back to original file
+        try {
+            const url = await readFileAsDataURL(file);
+            setAttachments(prev => prev.map(p => 
+                p.id === att.id ? { ...p, url, isLoading: false } : p
+            ));
+        } catch (error) {
+            console.error("Failed to load file", file.name, error);
+            // Remove failed attachment
+            setAttachments(prev => prev.filter(p => p.id !== att.id));
+        }
+    });
+  };
+
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const validFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+      if (validFiles.length > 0) {
+          processFiles(validFiles);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const files: File[] = [];
+    for (const item of items) {
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+          files.push(file);
+        }
+      }
+    }
+    if (files.length > 0) {
+      processFiles(files);
+    }
+  };
+
+  const handleSend = () => {
+    if ((!inputValue.trim() && attachments.length === 0) || isLoading) return;
+    
+    // Filter out still loading attachments or ensure we wait? 
+    // For now, we only send ready attachments.
+    const readyAttachments = attachments.filter(a => !a.isLoading);
+    
+    onSendMessage(inputValue, readyAttachments);
+    
+    setInputValue('');
+    setAttachments([]);
+    setIsExpanded(false);
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <>
+      <div 
+        className={`p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black transition-all duration-300 ease-in-out ${
+            isExpanded ? 'h-[50vh]' : 'h-auto'
+        }`}
+      >
+        <div className={`relative flex flex-col h-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus-within:border-blue-500/50 rounded-xl overflow-hidden transition-all ${
+            isExpanded ? 'p-4' : 'p-2'
+        }`}>
+          
+           {/* Attachment List */}
+           {attachments.length > 0 && (
+             <div className="flex gap-3 mb-3 overflow-x-auto pb-2 shrink-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+               {attachments.map(att => (
+                 <div key={att.id} className="relative group shrink-0 w-20 h-20">
+                   <div 
+                     className="w-full h-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center cursor-pointer relative"
+                     onClick={() => !att.isLoading && setPreviewAttachment(att)}
+                   >
+                     {att.isLoading ? (
+                       <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                     ) : att.type === 'image' ? (
+                       <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                     ) : (
+                       <FileVideo className="w-8 h-8 text-gray-400" />
+                     )}
+                     
+                     {/* Hover Overlay for Preview icon */}
+                     {!att.isLoading && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye className="w-5 h-5 text-white" />
+                        </div>
+                     )}
+                   </div>
+                   
+                   <button
+                     onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                   >
+                     <X className="w-3 h-3" />
+                   </button>
+                 </div>
+               ))}
+             </div>
+           )}
+
+           <textarea
+             value={inputValue}
+             onChange={(e) => setInputValue(e.target.value)}
+             onPaste={handlePaste}
+             onKeyDown={handleKeyDown}
+             placeholder={isLoading ? "Generating response..." : "Send a message... (Paste images/videos supported)"}
+             disabled={isLoading}
+             className={`flex-1 w-full bg-transparent border-0 focus:ring-0 resize-none py-2 text-sm ${
+                 isExpanded ? 'h-full' : 'max-h-32 min-h-[44px]'
+             }`}
+           />
+
+           {/* Bottom Toolbar */}
+           <div className="flex items-center justify-between mt-2 pt-2 border-t border-transparent shrink-0">
+              <div className="flex items-center gap-2">
+                  <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      title="Upload image or video"
+                      disabled={isLoading}
+                  >
+                      <Paperclip className="w-5 h-5" />
+                  </button>
+                  <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      accept="image/*,video/*"
+                      multiple
+                  />
+                  <button
+                      onClick={() => setIsExpanded(!isExpanded)}
+                      className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      title={isExpanded ? "Collapse input" : "Expand input"}
+                  >
+                      {isExpanded ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                  </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                  <button
+                      onClick={handleSend}
+                      disabled={(!inputValue.trim() && attachments.length === 0) || isLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm font-medium text-sm"
+                  >
+                      <Send className="w-4 h-4" />
+                      <span>Send</span>
+                  </button>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      {/* Preview Modal */}
+      {previewAttachment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setPreviewAttachment(null)}>
+           <div className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
+              <button 
+                  onClick={() => setPreviewAttachment(null)}
+                  className="absolute -top-12 right-0 text-white hover:text-gray-300 p-2"
+              >
+                  <X className="w-8 h-8" />
+              </button>
+
+              <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800 w-auto h-auto flex justify-center items-center">
+                 {previewAttachment.type === 'image' ? (
+                     <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-[80vh] object-contain" />
+                 ) : (
+                     <video src={previewAttachment.url} controls className="max-w-full max-h-[80vh]" />
+                 )}
+              </div>
+              
+              <div className="flex gap-4 mt-4">
+                  <a 
+                    href={previewAttachment.url} 
+                    download={previewAttachment.name}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-full font-medium transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                      <Download className="w-4 h-4" />
+                      Download
+                  </a>
+              </div>
+           </div>
+        </div>
+      )}
+    </>
+  );
+};
