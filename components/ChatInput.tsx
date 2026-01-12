@@ -1,3 +1,4 @@
+import { uploadFile } from '../services/api';
 import React, { useState, useRef, useCallback } from 'react';
 import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, Image as ImageIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +18,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
   const [isExpanded, setIsExpanded] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<PendingAttachment | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFiles = async (files: File[]) => {
@@ -32,20 +33,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
     // Add placeholders immediately
     setAttachments(prev => [...prev, ...newPendingAttachments]);
 
-    // Process each file
-    newPendingAttachments.forEach(async (att, index) => {
-        const file = files[index]; // Map back to original file
+    // Process each file concurrently
+    await Promise.all(files.map(async (file, index) => {
+        const att = newPendingAttachments[index];
         try {
-            const url = await readFileAsDataURL(file);
-            setAttachments(prev => prev.map(p => 
-                p.id === att.id ? { ...p, url, isLoading: false } : p
+            const base64Data = await readFileAsDataURL(file);
+            // Upload to server and get real URL
+            const serverUrl = await uploadFile(base64Data);
+
+            setAttachments(prev => prev.map(p =>
+                p.id === att.id ? { ...p, url: serverUrl, isLoading: false } : p
             ));
         } catch (error) {
-            console.error("Failed to load file", file.name, error);
+            console.error("Failed to upload file", file.name, error);
             // Remove failed attachment
             setAttachments(prev => prev.filter(p => p.id !== att.id));
         }
-    });
+    }));
   };
 
   const readFileAsDataURL = (file: File): Promise<string> => {
@@ -86,13 +90,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
 
   const handleSend = () => {
     if ((!inputValue.trim() && attachments.length === 0) || isLoading) return;
-    
-    // Filter out still loading attachments or ensure we wait? 
+
+    // Filter out still loading attachments or ensure we wait?
     // For now, we only send ready attachments.
     const readyAttachments = attachments.filter(a => !a.isLoading);
-    
+
     onSendMessage(inputValue, readyAttachments);
-    
+
     setInputValue('');
     setAttachments([]);
     setIsExpanded(false);
@@ -111,7 +115,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
 
   return (
     <>
-      <div 
+      <div
         className={`p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black transition-all duration-300 ease-in-out ${
             isExpanded ? 'h-[50vh]' : 'h-auto'
         }`}
@@ -119,13 +123,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
         <div className={`relative flex flex-col h-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus-within:border-blue-500/50 rounded-xl overflow-hidden transition-all ${
             isExpanded ? 'p-4' : 'p-2'
         }`}>
-          
+
            {/* Attachment List */}
            {attachments.length > 0 && (
              <div className="flex gap-3 mb-3 overflow-x-auto pb-2 shrink-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                {attachments.map(att => (
                  <div key={att.id} className="relative group shrink-0 w-20 h-20">
-                   <div 
+                   <div
                      className="w-full h-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center cursor-pointer relative"
                      onClick={() => !att.isLoading && setPreviewAttachment(att)}
                    >
@@ -136,7 +140,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                      ) : (
                        <FileVideo className="w-8 h-8 text-gray-400" />
                      )}
-                     
+
                      {/* Hover Overlay for Preview icon */}
                      {!att.isLoading && (
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -144,7 +148,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                         </div>
                      )}
                    </div>
-                   
+
                    <button
                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -214,7 +218,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
       {previewAttachment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setPreviewAttachment(null)}>
            <div className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
-              <button 
+              <button
                   onClick={() => setPreviewAttachment(null)}
                   className="absolute -top-12 right-0 text-white hover:text-gray-300 p-2"
               >
@@ -228,10 +232,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                      <video src={previewAttachment.url} controls className="max-w-full max-h-[80vh]" />
                  )}
               </div>
-              
+
               <div className="flex gap-4 mt-4">
-                  <a 
-                    href={previewAttachment.url} 
+                  <a
+                    href={previewAttachment.url}
                     download={previewAttachment.name}
                     className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-full font-medium transition-colors"
                     onClick={(e) => e.stopPropagation()}
