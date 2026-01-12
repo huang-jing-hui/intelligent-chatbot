@@ -125,12 +125,7 @@ const App: React.FC = () => {
         if (m.attachments && m.attachments.length > 0) {
           const contentParts: any[] = [];
 
-          // Add text if exists
-          if (m.content) {
-            contentParts.push({ type: 'text', text: m.content });
-          }
-
-          // Add attachments
+          // Add attachments first
           m.attachments.forEach(att => {
              if (att.type === 'image') {
                contentParts.push({
@@ -144,6 +139,11 @@ const App: React.FC = () => {
                });
              }
           });
+
+          // Add text if exists
+          if (m.content) {
+            contentParts.push({ type: 'text', text: m.content });
+          }
 
           return { role: m.role, content: contentParts };
         }

@@ -185,18 +185,20 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                                         , `${msgId}-part-${pIdx}`);
                                     }
                                     if (part.type === 'image_url') {
-                                        return (
-                                            <div key={`${msgId}-part-${pIdx}`} className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+                                        const content = (
+                                            <div className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
                                                 <img src={part.image_url.url} alt="content image" className="w-full h-auto max-h-96 object-contain bg-black/5" />
                                             </div>
                                         );
+                                        return wrapInTextBubble(content, `${msgId}-part-${pIdx}`);
                                     }
                                     if (part.type === 'video_url') {
-                                        return (
-                                            <div key={`${msgId}-part-${pIdx}`} className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+                                        const content = (
+                                            <div className="max-w-md rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
                                                 <video src={part.video_url.url} controls className="w-full h-auto max-h-96 bg-black/5" />
                                             </div>
                                         );
+                                        return wrapInTextBubble(content, `${msgId}-part-${pIdx}`);
                                     }
                                     return null;
                                 })}
