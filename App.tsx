@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Menu } from 'lucide-react';
 import { Message, ChatSession, ToolCall, Attachment, ToolResult } from './types';
-import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat } from './services/api';
+import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle } from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
@@ -64,8 +64,7 @@ const App: React.FC = () => {
     lastStreamedIdRef.current = null;
   };
 
-  const handleDeleteChat = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteChat = async (id: string) => {
     try {
       const response = await deleteChat(id);
       if (!response.ok) {
@@ -79,6 +78,19 @@ const App: React.FC = () => {
       await loadSessions(false);
     } catch (error) {
       console.error("Failed to delete chat", error);
+    }
+  };
+
+  const handleRenameChat = async (id: string, newTitle: string) => {
+    try {
+      const success = await updateChatTitle(id, newTitle);
+      if (success) {
+        await loadSessions(false);
+      } else {
+        alert("Failed to update chat title");
+      }
+    } catch (error) {
+      console.error("Failed to rename chat", error);
     }
   };
 
@@ -306,6 +318,7 @@ const App: React.FC = () => {
           onSelectSession={setCurrentSessionId}
           onNewChat={createNewChat}
           onDeleteChat={handleDeleteChat}
+          onRenameChat={handleRenameChat}
         />
       </div>
 
