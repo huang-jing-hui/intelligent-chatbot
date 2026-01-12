@@ -115,6 +115,29 @@ export const getChatTitles = async (): Promise<ChatSession[]> => {
   }
 };
 
+export const updateChatTitle = async (chatId: string, title: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/v1/chat/update_title`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        "config":
+            {
+              "configurable": {
+                "thread_id": chatId
+              }
+            },
+        "title": title
+      })
+    });
+    const data = await response.json();
+    return data.status === 'success';
+  } catch (error) {
+    console.error("Failed to fetch titles", error);
+    return false;
+  }
+};
+
 export const deleteChat = async (chatId: string) => {
   return fetch(`${API_BASE_URL}/v1/chat/delete`, {
     method: 'POST',
