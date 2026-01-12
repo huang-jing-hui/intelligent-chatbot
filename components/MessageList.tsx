@@ -2,13 +2,36 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Message, MessagePart, ToolCall, ToolResult, Attachment } from '../types';
 import { ReasoningBlock, ToolCallsBlock, ToolResultBlock, InterruptBlock } from './MessageBlocks';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { User, Bot, Terminal, X, Download } from 'lucide-react';
+import { User, Bot, Terminal, X, Download, Copy, Check } from 'lucide-react';
 
 interface Props {
   messages: Message[];
   onInterruptResponse: (response: string) => void;
   isLoading: boolean;
 }
+
+const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser 
+          ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white' 
+          : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400'}`}
+    >
+      {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+      <span className="text-[10px] font-medium uppercase tracking-wider">{copied ? 'Copied!' : 'Copy'}</span>
+    </button>
+  );
+};
 
 // Helper to check if a tool result is "empty" to avoid rendering empty bubbles
 const isToolResultEmpty = (content: string, name?: string) => {
@@ -124,9 +147,16 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                 const renderBlocks: React.ReactNode[] = [];
 
                 // Helper for Text Bubbles ONLY
-                const wrapInTextBubble = (content: React.ReactNode, key: string) => (
-                    <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
+                const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string) => (
+                    <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
                         {content}
+                        
+                        {/* Copy Full Bubble Content */}
+                        {rawText && rawText.trim() && (
+                            <div className="flex justify-end mt-2 pt-2 border-t border-black/5 dark:border-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
+                                <CopyButton content={rawText} isUser={isUser} />
+                            </div>
+                        )}
                     </div>
                 );
 
@@ -182,7 +212,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                         if (!cleaned) return null;
                         return wrapInTextBubble(
                             <MarkdownRenderer content={cleaned} className={isUser ? 'prose-invert' : ''} />
-                        , `${msgId}-content`);
+                        , `${msgId}-content`, cleaned);
                     }
 
                     if (Array.isArray(content)) {
@@ -201,7 +231,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                                     if (!text) return null;
                                     return wrapInTextBubble(
                                         <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
-                                    , `${msgId}-txt-${i}`);
+                                    , `${msgId}-txt-${i}`, text);
                                 })}
                             </div>
                         );

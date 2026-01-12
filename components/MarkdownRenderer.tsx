@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Copy, Check } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 
 interface Props {
@@ -12,33 +13,69 @@ interface Props {
   className?: string;
 }
 
+const CodeBlock = ({ language, value }: { language: string; value: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-[#f6f8fa] dark:bg-gray-900/50 shadow-sm group/code">
+      <div className="flex items-center justify-between px-4 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          {language || 'text'}
+        </span>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+          <span className="text-[10px] font-medium">{copied ? 'Copied!' : 'Copy'}</span>
+        </button>
+      </div>
+      <div className="relative">
+        <SyntaxHighlighter
+          language={language}
+          style={oneLight}
+          PreTag="div"
+          customStyle={{
+            margin: 0,
+            padding: '1rem',
+            fontSize: '0.85rem',
+            lineHeight: '1.5',
+            background: 'transparent',
+          }}
+          codeTagProps={{
+            style: { background: 'transparent' }
+          }}
+        >
+          {value}
+        </SyntaxHighlighter>
+      </div>
+    </div>
+  );
+};
+
 export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
   // Ensure content is a string to prevent crashes
   if (typeof content !== 'string') {
-    // If content is falsy, return null
     if (!content) return null;
-    
-    // If it's an array or object, try to render it responsibly or fallback
     console.warn('MarkdownRenderer received non-string content:', content);
-    
-    // Attempt to convert to string if it's a number or simple type
     if (typeof content === 'number') {
         content = String(content);
     } else {
-        // If it's complex (like an array from a multimodal message), 
-        // we probably shouldn't be rendering it as Markdown text directly here.
-        // Return null to avoid rendering "[object Object]"
         return null;
     }
   }
 
   // Safe Pre-processing
   const processedContent = content
-    // Fix block math \[ \] -> $$
     .replace(/\\\[([\s\S]*?)\\\]/g, (_, equation) => `\n$$\n${equation.trim()}\n$$\n`)
-    // Fix inline math \( \) -> $
     .replace(/\\\(([\s\S]*?)\\\)/g, (_, equation) => `$${equation.trim()}$`)
-    // Better Table Pre-processing: Only add newline if the line starts with | AND the previous line is not a | line and not empty
     .split('\n')
     .map((line, i, arr) => {
       const trimmed = line.trim();
@@ -58,14 +95,12 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          // Limit image size in Markdown
           img: ({node, ...props}) => (
             <img 
               className="max-w-xs max-h-48 object-contain rounded-lg shadow-sm my-2" 
               {...props} 
             />
           ),
-          // Table rendering with forced visible borders and better spacing
           table: ({node, ...props}) => (
             <div className="my-6 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
               <table className="min-w-full border-collapse" {...props} />
@@ -78,20 +113,15 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
           code(props: any) {
             const { children, className, node, ...rest } = props;
             const match = /language-(\w+)/.exec(className || '');
-            return match ? (
-              <div className="my-4 rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800">
-                <SyntaxHighlighter
-                  {...rest}
-                  style={oneDark}
-                  language={match[1]}
-                  PreTag="div"
-                  customStyle={{ margin: 0, padding: '1rem', fontSize: '0.875rem', background: 'transparent' }}
-                >
-                  {String(children).replace(/\n$/, '')}
-                </SyntaxHighlighter>
-              </div>
-            ) : (
-              <code {...rest} className={`${className} bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-pink-600 dark:text-pink-400 font-mono text-[0.9em]`}>
+            const language = match ? match[1] : '';
+            const value = String(children).replace(/\n$/, '');
+
+            if (match) {
+              return <CodeBlock language={language} value={value} />;
+            }
+
+            return (
+              <code {...rest} className={`${className} bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-mono text-[0.9em]`}>
                 {children}
               </code>
             );
