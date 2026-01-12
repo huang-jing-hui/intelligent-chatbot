@@ -24,7 +24,7 @@ const CodeBlock = ({ language, value }: { language: string; value: string }) => 
   };
 
   return (
-    <div className="my-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-[#f6f8fa] dark:bg-gray-900/50 shadow-sm group/code">
+    <div className="my-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-[#f6f8fa] dark:bg-gray-900/50 shadow-sm group/code not-prose">
       <div className="flex items-center justify-between px-4 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           {language || 'text'}
@@ -123,7 +123,7 @@ export const MarkdownRenderer: React.FC<Props> = ({ content, className }) => {
             }
 
             return (
-              <code {...rest} className={`${className} bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-mono text-[0.9em]`}>
+              <code {...rest} className={`${className} not-prose bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-mono text-[0.9em]`}>
                 {children}
               </code>
             );
