@@ -108,12 +108,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
       {groupedMessages.map((group, groupIndex) => {
         const isUser = group.role === 'user';
-        // For Bot group, we just use the Bot icon. 
-        // If we really wanted to distinguish 'Tool' vs 'Bot' we could check the first message, 
-        // but grouping implies unified identity. 
-        // We'll stick to 'Bot' icon for AI groups unless it's ONLY tool messages? 
-        // The prompt asked for "one robot avatar".
-
+        
         return (
           <div key={`group-${groupIndex}`} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
             {/* Avatar */}
@@ -124,10 +119,9 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
             </div>
 
             {/* Content Column */}
-            <div className={`flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
+            <div className={`flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] ${isUser ? 'items-end' : 'items-start'} w-full`}>
               
               {group.messages.map((msg, msgIndex) => {
-                // Flatten content logic
                 const renderBlocks: React.ReactNode[] = [];
 
                 // 1. Attachments
@@ -151,13 +145,22 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                    );
                 }
 
-                // Helper to wrap content in a bubble
-                const wrapInBubble = (content: React.ReactNode, key: string, isText: boolean = false) => (
+                // Helper for Text Bubbles ONLY
+                const wrapInTextBubble = (content: React.ReactNode, key: string) => (
                     <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${
-                        isUser && isText
-                        ? 'bg-blue-600 text-white'
+                        isUser 
+                        ? 'bg-blue-600 text-white' 
                         : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'
                     }`}>
+                        {content}
+                    </div>
+                );
+
+                // Helper for Naked Blocks (No Bubble, just the component)
+                // These components (Reasoning, ToolCalls, ToolResult) already have their own borders/backgrounds.
+                // We add 'w-full' to ensure they take available width in the flex column.
+                const renderNakedBlock = (content: React.ReactNode, key: string) => (
+                    <div key={key} className="w-full">
                         {content}
                     </div>
                 );
@@ -167,29 +170,28 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     msg.parts.forEach((part, pIdx) => {
                         const key = `${msg.id}-p${pIdx}`;
                         if (part.type === 'reasoning') {
-                            renderBlocks.push(wrapInBubble(<ReasoningBlock content={part.content} />, key));
+                            renderBlocks.push(renderNakedBlock(<ReasoningBlock content={part.content} />, key));
                         } else if (part.type === 'tool_calls') {
                             part.tool_calls.forEach((call, tcIdx) => {
-                                renderBlocks.push(wrapInBubble(<ToolCallsBlock calls={[call]} />, `${key}-tc${tcIdx}`));
+                                renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${key}-tc${tcIdx}`));
                             });
                         } else if (part.type === 'tool_result') {
                             part.tool_result.forEach((res, rIdx) => {
                                 if (!isToolResultEmpty(res.output, res.name)) {
-                                    renderBlocks.push(wrapInBubble(
+                                    renderBlocks.push(renderNakedBlock(
                                         <ToolResultBlock content={res.output} toolName={res.name} />
                                     , `${key}-tr${rIdx}`));
                                 }
                             });
                         } else if (part.type === 'text') {
                             if (msg.role === 'tool' || msg.role === 'tool_result') {
-                                // Fallback if 'text' part is used for tool result? Unlikely based on types, but safe handling
                                 if (!isToolResultEmpty(part.content)) {
-                                    renderBlocks.push(wrapInBubble(<ToolResultBlock content={part.content} />, key));
+                                    renderBlocks.push(renderNakedBlock(<ToolResultBlock content={part.content} />, key));
                                 }
                             } else {
-                                renderBlocks.push(wrapInBubble(
+                                renderBlocks.push(wrapInTextBubble(
                                     <MarkdownRenderer content={part.content} className={isUser ? 'prose-invert' : ''} />
-                                , key, true));
+                                , key));
                             }
                         }
                     });
@@ -197,19 +199,19 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     // Legacy Rendering
                     // Reasoning
                     if (msg.reasoning_content && !isUser) {
-                        renderBlocks.push(wrapInBubble(<ReasoningBlock content={msg.reasoning_content} />, `${msg.id}-reasoning`));
+                        renderBlocks.push(renderNakedBlock(<ReasoningBlock content={msg.reasoning_content} />, `${msg.id}-reasoning`));
                     }
                     // Tool Calls
                     if (msg.tool_calls && msg.tool_calls.length > 0) {
                         msg.tool_calls.forEach((call, tcIdx) => {
-                            renderBlocks.push(wrapInBubble(<ToolCallsBlock calls={[call]} />, `${msg.id}-call-${tcIdx}`));
+                            renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${msg.id}-call-${tcIdx}`));
                         });
                     }
                     // Tool Results
                     if (msg.tool_result && msg.tool_result.length > 0) {
                         msg.tool_result.forEach((res, rIdx) => {
                              if (!isToolResultEmpty(res.output, res.name)) {
-                                renderBlocks.push(wrapInBubble(
+                                renderBlocks.push(renderNakedBlock(
                                     <ToolResultBlock content={res.output} toolName={res.name} />
                                 , `${msg.id}-res-${rIdx}`));
                              }
@@ -219,19 +221,19 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
                     if (msg.content) {
                         if (msg.role === 'tool' || msg.role === 'tool_result') {
                              if (!isToolResultEmpty(msg.content)) {
-                                renderBlocks.push(wrapInBubble(<ToolResultBlock content={msg.content} />, `${msg.id}-content`));
+                                renderBlocks.push(renderNakedBlock(<ToolResultBlock content={msg.content} />, `${msg.id}-content`));
                              }
                         } else {
-                            renderBlocks.push(wrapInBubble(
+                            renderBlocks.push(wrapInTextBubble(
                                 <MarkdownRenderer content={msg.content} className={isUser ? 'prose-invert' : ''} />
-                            , `${msg.id}-content`, true));
+                            , `${msg.id}-content`));
                         }
                     }
                 }
 
                 // Interrupt (Universal)
                 if (msg.interrupt_info) {
-                    renderBlocks.push(wrapInBubble(
+                    renderBlocks.push(renderNakedBlock(
                        <InterruptBlock 
                          info={msg.interrupt_info} 
                          onRespond={onInterruptResponse}
