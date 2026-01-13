@@ -2,13 +2,17 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Message, MessagePart, ToolCall, ToolResult, Attachment } from '../types';
 import { ReasoningBlock, ToolCallsBlock, ToolResultBlock, InterruptBlock } from './MessageBlocks';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { User, Bot, Terminal, X, Download, Copy, Check } from 'lucide-react';
+import { User, Bot, Terminal, X, Download, Copy, Check, Trash2 } from 'lucide-react';
 
 interface Props {
   messages: Message[];
   onInterruptResponse: (response: string) => void;
   isLoading: boolean;
   isStreaming: boolean;
+  onDeleteMessage?: (id: string) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) => {
@@ -34,6 +38,21 @@ const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) =
   );
 };
 
+const DeleteButton = ({ isUser, onDelete }: { isUser: boolean; onDelete: () => void }) => {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onDelete(); }}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser
+        ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-red-300'
+        : 'bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400'}`}
+      title="Delete Message"
+    >
+      <Trash2 className="w-3.5 h-3.5" />
+      <span className="text-[10px] font-medium uppercase tracking-wider">Delete</span>
+    </button>
+  );
+};
+
 // Helper to check if a tool result is "empty" to avoid rendering empty bubbles
 const isToolResultEmpty = (content: string, name?: string) => {
   if (!content && !name) return true;
@@ -48,11 +67,12 @@ const isToolResultEmpty = (content: string, name?: string) => {
   return false;
 };
 
-export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptResponse, isLoading, isStreaming }) => {
+export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptResponse, isLoading, isStreaming, onDeleteMessage, onLoadMore, hasMore, isLoadingMore }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessagesLength = useRef(messages.length);
   const isAutoScrolling = useRef(true);
   const isInitialLoad = useRef(true);
+  const previousScrollHeight = useRef(0);
   const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video', name?: string } | null>(null);
 
   // Group messages logic - optimized with shallow comparison
@@ -80,7 +100,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
   }, [messages.length, messages[messages.length - 1]?.content, messages[messages.length - 1]?.parts?.length]);
 
 
-  // Handle automatic scrolling to bottom
+  // Handle automatic scrolling and scroll restoration
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -88,19 +108,36 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     const isNewLoad = lastMessagesLength.current === 0 && messages.length > 0;
     const isNewMessage = messages.length > lastMessagesLength.current && lastMessagesLength.current > 0;
     const isStillStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isStreaming;
+    
+    // Check if we finished loading more messages
+    const justFinishedLoadingMore = !isLoadingMore && (messages.length > lastMessagesLength.current);
 
-    if (isNewLoad) {
+    // If we were fetching more and messages increased, restore scroll position
+    if (justFinishedLoadingMore && previousScrollHeight.current > 0) {
+        // We need to ensure the DOM has updated. usually useEffect runs after render, so scrollHeight should be new.
+        // However, if the new messages are prepended, we want to maintain the relative scroll position.
+        const newScrollHeight = container.scrollHeight;
+        const diff = newScrollHeight - previousScrollHeight.current;
+        if (diff > 0) {
+           container.scrollTop = diff + container.scrollTop; // Usually scrollTop was 0 or small, so this sets it to diff
+        }
+        previousScrollHeight.current = 0; // Reset
+    } 
+    else if (isNewLoad) {
       container.style.scrollBehavior = 'auto';
       container.scrollTop = container.scrollHeight;
       isAutoScrolling.current = true;
       setTimeout(() => { isInitialLoad.current = false; }, 100);
     } else if (isNewMessage || (isStillStreaming && isAutoScrolling.current)) {
-      container.style.scrollBehavior = 'smooth';
-      container.scrollTop = container.scrollHeight;
+      // Only auto-scroll if we are not fetching older messages
+      if (!isLoadingMore) {
+          container.style.scrollBehavior = 'smooth';
+          container.scrollTop = container.scrollHeight;
+      }
     }
 
     lastMessagesLength.current = messages.length;
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, isLoadingMore]);
 
   // Handle height changes
   useEffect(() => {
@@ -108,7 +145,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     if (!container) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      if (!isInitialLoad.current && isAutoScrolling.current) {
+      if (!isInitialLoad.current && isAutoScrolling.current && !isLoadingMore) {
         requestAnimationFrame(() => {
           container.style.scrollBehavior = 'auto';
           container.scrollTop = container.scrollHeight;
@@ -120,7 +157,13 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     resizeObserver.observe(container);
 
     const handleScroll = () => {
-      if (isInitialLoad.current) return;
+      // Logic for infinite scroll
+      if (container.scrollTop === 0 && hasMore && !isLoadingMore && !isLoading && !isInitialLoad.current && onLoadMore) {
+          previousScrollHeight.current = container.scrollHeight;
+          onLoadMore();
+      }
+
+      if (isInitialLoad.current || isLoadingMore) return;
       const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
       isAutoScrolling.current = isAtBottom;
     };
@@ -130,10 +173,18 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
       resizeObserver.disconnect();
       container.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [hasMore, isLoadingMore, isLoading, onLoadMore]);
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
+      {/* Loading Spinner for Load More */}
+      {isLoadingMore && (
+          <div className="flex justify-center py-2">
+             <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+      )}
+
+
       {groupedMessages.map((group, groupIndex) => {
         const isUser = group.role === 'user';
 
@@ -151,14 +202,22 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                 const renderBlocks: React.ReactNode[] = [];
 
                 // Helper for Text Bubbles ONLY
-                const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string) => (
+                const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string, msgId?: string) => (
                   <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
                     {content}
 
-                    {/* Copy Full Bubble Content */}
-                    {rawText && rawText.trim() && (
-                      <div className="flex justify-end mt-2 pt-2 border-t border-black/5 dark:border-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
-                        <CopyButton content={rawText} isUser={isUser} />
+                    {/* Footer Actions: Copy & Delete */}
+                    {(rawText && rawText.trim() || (msg.message_id && onDeleteMessage)) && (
+                      <div className="flex justify-end mt-2 pt-2 border-t border-black/5 dark:border-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity gap-2">
+                        {rawText && rawText.trim() && <CopyButton content={rawText} isUser={isUser} />}
+                        
+                        {/* Only show delete button if message has a message_id (persisted on server) */}
+                        {msg.message_id && onDeleteMessage && (
+                          <DeleteButton 
+                            isUser={isUser} 
+                            onDelete={() => onDeleteMessage(msg.id)} 
+                          />
+                        )}
                       </div>
                     )}
                   </div>
@@ -187,11 +246,8 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   );
 
                   // Wrap in bubble to match text style
-                  return (
-                    <div key={keyPrefix} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${isUser ? 'bg-blue-600' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'}`}>
-                      {content}
-                    </div>
-                  );
+                  // We also attach delete button here if it's the only content
+                  return wrapInTextBubble(content, keyPrefix, '', msg.id);
                 };
 
                 // 1. Attachments (Legacy/Local)
@@ -216,7 +272,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                     if (!cleaned) return null;
                     return wrapInTextBubble(
                       <MarkdownRenderer content={cleaned} className={isUser ? 'prose-invert' : ''} />
-                      , `${msgId}-content`, cleaned);
+                      , `${msgId}-content`, cleaned, msg.id);
                   }
 
                   if (Array.isArray(content)) {
@@ -235,7 +291,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                           if (!text) return null;
                           return wrapInTextBubble(
                             <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
-                            , `${msgId}-txt-${i}`, text);
+                            , `${msgId}-txt-${i}`, text, msg.id);
                         })}
                       </div>
                     );

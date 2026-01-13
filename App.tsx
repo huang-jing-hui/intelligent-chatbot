@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Menu } from 'lucide-react';
 import { Message, ChatSession, ToolCall, Attachment, ToolResult } from './types';
-import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle } from './services/api';
+import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle, deleteChatSpecify } from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
@@ -12,8 +12,14 @@ const App: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const lastStreamedIdRef = useRef<string | null>(null);
+
+  // Pagination State
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const LIMIT = 20;
 
   // Initialize
   useEffect(() => {
@@ -45,22 +51,52 @@ const App: React.FC = () => {
     }
   };
 
-  const loadMessages = async (id: string) => {
+  const loadMessages = async (id: string, isLoadMore: boolean = false) => {
+    if (isLoading || isFetchingHistory) return;
     try {
-      setIsLoading(true);
-      const msgs = await getChatMessages(id);
-      setMessages(msgs);
+      if (isLoadMore) {
+        setIsFetchingHistory(true);
+      } else {
+        setIsLoading(true);
+      }
+      
+      const currentOffset = isLoadMore ? offset : 0;
+      
+      const msgs = await getChatMessages(id, currentOffset, LIMIT);
+      
+      // The API returns messages in reverse order (newest first), so we reverse them for display
+      const orderedMsgs = [...msgs].reverse();
+
+      setMessages(prev => {
+        const existingIds = new Set(isLoadMore ? prev.map(m => m.message_id).filter(Boolean) : []);
+        const uniqueNewMsgs = orderedMsgs.filter(m => !m.message_id || !existingIds.has(m.message_id));
+        
+        return isLoadMore ? [...uniqueNewMsgs, ...prev] : uniqueNewMsgs;
+      });
+
+      if (msgs.length < LIMIT) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+        setOffset(currentOffset + LIMIT);
+      }
     } catch (e) {
       console.error(e);
-      setMessages([]);
+      if (!isLoadMore) setMessages([]);
     } finally {
-      setIsLoading(false);
+      if (isLoadMore) {
+        setIsFetchingHistory(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   };
 
   const createNewChat = () => {
     setCurrentSessionId(null);
     setMessages([]);
+    setOffset(0);
+    setHasMore(false);
     lastStreamedIdRef.current = null;
   };
 
@@ -78,6 +114,37 @@ const App: React.FC = () => {
       await loadSessions(false);
     } catch (error) {
       console.error("Failed to delete chat", error);
+    }
+  };
+
+  const handleDeleteMessage = async (msgUniqueId: string) => {
+    if (!currentSessionId) return;
+
+    // Find the target message to get its grouping ID (which is 'id' in our local state)
+    const targetMsg = messages.find(m => m.id === msgUniqueId);
+    if (!targetMsg) return;
+
+    // Find all messages that share this ID (representing the turn)
+    const msgsToDelete = messages.filter(m => m.id === targetMsg.id);
+    
+    // Collect backend message_ids
+    const backendIds = Array.from(new Set(
+      msgsToDelete
+        .map(m => m.message_id)
+        .filter((id): id is string => !!id)
+    ));
+
+    // If no backend IDs, we can't delete from server (e.g. still streaming or error state without ID)
+    if (backendIds.length === 0) return;
+
+    try {
+      await deleteChatSpecify(currentSessionId, backendIds);
+      
+      // Update UI: Remove all messages with this grouping ID
+      setMessages(prev => prev.filter(m => m.id !== targetMsg.id));
+    } catch (error) {
+      console.error("Failed to delete message", error);
+      alert("Failed to delete message");
     }
   };
 
@@ -125,7 +192,15 @@ const App: React.FC = () => {
       // Create placeholder assistant message
       const assistantId = uuidv4();
       const initialAssistantMsg: Message = {
-        id: assistantId,
+        id: assistantId, // Same ID logic? No, uuidv4() generates unique. 
+                         // Wait, user says "User and AI message of one turn have same id".
+                         // In `handleSendMessage`, I am generating separate IDs: `userMsg.id` and `initialAssistantMsg.id`.
+                         // If the backend returns them with same ID, `getChatMessages` will sync that.
+                         // But for now, they are different in local state.
+                         // However, `handleDeleteMessage` relies on `m.id === targetMsg.id`.
+                         // If I delete userMsg, I only delete userMsg.
+                         // If the user wants to delete the pair, I might need to link them.
+                         // But for now I'll stick to deleting what is clicked (and its group if any).
         role: 'assistant',
         content: '',
         parts: [], // Initialize parts
@@ -378,6 +453,10 @@ const App: React.FC = () => {
           onInterruptResponse={handleInterruptResponse}
           isLoading={isLoading && messages.length === 0}
           isStreaming={isLoading}
+          onDeleteMessage={handleDeleteMessage}
+          onLoadMore={() => currentSessionId && loadMessages(currentSessionId, true)}
+          hasMore={hasMore}
+          isLoadingMore={isFetchingHistory}
         />
 
         {/* Input Area */}
@@ -389,5 +468,6 @@ const App: React.FC = () => {
     </div>
   );
 };
+
 
 export default App;
