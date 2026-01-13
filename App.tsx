@@ -377,6 +377,7 @@ const App: React.FC = () => {
           messages={messages}
           onInterruptResponse={handleInterruptResponse}
           isLoading={isLoading && messages.length === 0}
+          isStreaming={isLoading}
         />
 
         {/* Input Area */}

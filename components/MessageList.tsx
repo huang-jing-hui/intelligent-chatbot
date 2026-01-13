@@ -8,6 +8,7 @@ interface Props {
   messages: Message[];
   onInterruptResponse: (response: string) => void;
   isLoading: boolean;
+  isStreaming: boolean;
 }
 
 const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) => {
@@ -47,7 +48,7 @@ const isToolResultEmpty = (content: string, name?: string) => {
   return false;
 };
 
-export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptResponse, isLoading }) => {
+export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptResponse, isLoading, isStreaming }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessagesLength = useRef(messages.length);
   const isAutoScrolling = useRef(true);
@@ -86,20 +87,20 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
     const isNewLoad = lastMessagesLength.current === 0 && messages.length > 0;
     const isNewMessage = messages.length > lastMessagesLength.current && lastMessagesLength.current > 0;
-    const isStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isLoading;
+    const isStillStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isStreaming;
 
     if (isNewLoad) {
       container.style.scrollBehavior = 'auto';
       container.scrollTop = container.scrollHeight;
       isAutoScrolling.current = true;
       setTimeout(() => { isInitialLoad.current = false; }, 100);
-    } else if (isNewMessage || (isStreaming && isAutoScrolling.current)) {
+    } else if (isNewMessage || (isStillStreaming && isAutoScrolling.current)) {
       container.style.scrollBehavior = 'smooth';
       container.scrollTop = container.scrollHeight;
     }
 
     lastMessagesLength.current = messages.length;
-  }, [messages, isLoading]);
+  }, [messages, isStreaming]);
 
   // Handle height changes
   useEffect(() => {
@@ -387,6 +388,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
   // Custom comparison for memo optimization
   // Only re-render if messages actually changed meaningfully
   if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (prevProps.isStreaming !== nextProps.isStreaming) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
 
   // If lengths are same, check if last message content changed
