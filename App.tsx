@@ -177,7 +177,34 @@ const App: React.FC = () => {
       // Optimization: Local buffer to reduce React state updates
       let accumulatedMessage = { ...initialAssistantMsg };
       let lastUpdateTime = 0;
-      const THROTTLE_MS = 50;
+      const MIN_UPDATE_INTERVAL = 100; // Increased from 50ms to 100ms
+      let rafId: number | null = null;
+      let pendingUpdate = false;
+
+      // Smart update scheduler using requestAnimationFrame
+      const scheduleUpdate = () => {
+        if (pendingUpdate) return;
+        pendingUpdate = true;
+
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+
+        rafId = requestAnimationFrame(() => {
+          const now = performance.now();
+          if (now - lastUpdateTime >= MIN_UPDATE_INTERVAL) {
+            // Shallow copy is sufficient - parts are mutated in place
+            updateLastMessage(() => ({ ...accumulatedMessage }));
+            lastUpdateTime = now;
+            pendingUpdate = false;
+          } else {
+            // Schedule next check
+            pendingUpdate = false;
+            scheduleUpdate();
+          }
+          rafId = null;
+        });
+      };
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta;
@@ -274,22 +301,15 @@ const App: React.FC = () => {
             msg.interrupted = false;
         }
 
-        // Throttled UI Update
-        const now = Date.now();
-        if (now - lastUpdateTime > THROTTLE_MS) {
-            updateLastMessage(() => ({ 
-                ...msg, 
-                parts: msg.parts ? msg.parts.map(p => ({ ...p })) : [] 
-            }));
-            lastUpdateTime = now;
-        }
+        // Schedule UI update using RAF
+        scheduleUpdate();
       }
 
-      // Final Update
-      updateLastMessage(() => ({ 
-          ...accumulatedMessage, 
-          parts: accumulatedMessage.parts ? accumulatedMessage.parts.map(p => ({ ...p })) : [] 
-      }));
+      // Cancel any pending RAF and do final update
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      updateLastMessage(() => ({ ...accumulatedMessage }));
 
       if (!currentSessionId) {
         setCurrentSessionId(sessionId);

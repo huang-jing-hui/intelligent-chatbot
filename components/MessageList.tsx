@@ -23,9 +23,9 @@ const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) =
   return (
     <button
       onClick={handleCopy}
-      className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser 
-          ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white' 
-          : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400'}`}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser
+        ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400'}`}
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
       <span className="text-[10px] font-medium uppercase tracking-wider">{copied ? 'Copied!' : 'Copy'}</span>
@@ -35,29 +35,29 @@ const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) =
 
 // Helper to check if a tool result is "empty" to avoid rendering empty bubbles
 const isToolResultEmpty = (content: string, name?: string) => {
-    if (!content && !name) return true;
-    try {
-        const parsed = JSON.parse(content);
-        if (Object.keys(parsed).length === 0 || (parsed.status && Object.keys(parsed).length === 1 && !parsed.content && !parsed.results)) {
-            return true;
-        }
-    } catch (e) {
-        // Not JSON
+  if (!content && !name) return true;
+  try {
+    const parsed = JSON.parse(content);
+    if (Object.keys(parsed).length === 0 || (parsed.status && Object.keys(parsed).length === 1 && !parsed.content && !parsed.results)) {
+      return true;
     }
-    return false;
+  } catch (e) {
+    // Not JSON
+  }
+  return false;
 };
 
-export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, isLoading }) => {
+export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptResponse, isLoading }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessagesLength = useRef(messages.length);
   const isAutoScrolling = useRef(true);
   const isInitialLoad = useRef(true);
   const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video', name?: string } | null>(null);
 
-  // Group messages logic
+  // Group messages logic - optimized with shallow comparison
   const groupedMessages = useMemo(() => {
     const groups: { role: 'user' | 'bot'; messages: Message[] }[] = [];
-    
+
     messages.forEach((msg) => {
       if (msg.role === 'system') return;
 
@@ -76,7 +76,7 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
       }
     });
     return groups;
-  }, [messages]);
+  }, [messages.length, messages[messages.length - 1]?.content, messages[messages.length - 1]?.parts?.length]);
 
 
   // Handle automatic scrolling to bottom
@@ -108,31 +108,34 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
 
     const resizeObserver = new ResizeObserver(() => {
       if (!isInitialLoad.current && isAutoScrolling.current) {
-        container.style.scrollBehavior = 'auto';
-        container.scrollTop = container.scrollHeight;
+        requestAnimationFrame(() => {
+          container.style.scrollBehavior = 'auto';
+          container.scrollTop = container.scrollHeight;
+        });
       }
     });
 
-    Array.from(container.children).forEach(child => resizeObserver.observe(child));
-    
+    // Only observe the container, not all children
+    resizeObserver.observe(container);
+
     const handleScroll = () => {
       if (isInitialLoad.current) return;
       const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
       isAutoScrolling.current = isAtBottom;
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       resizeObserver.disconnect();
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [messages.length]);
+  }, []);
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
       {groupedMessages.map((group, groupIndex) => {
         const isUser = group.role === 'user';
-        
+
         return (
           <div key={`group-${groupIndex}`} className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
             {/* Avatar */}
@@ -142,184 +145,184 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
 
             {/* Content Column */}
             <div className={`flex flex-col gap-2 max-w-[85%] lg:max-w-[75%] ${isUser ? 'items-end' : 'items-start'} w-full`}>
-              
+
               {group.messages.map((msg, msgIndex) => {
                 const renderBlocks: React.ReactNode[] = [];
 
                 // Helper for Text Bubbles ONLY
                 const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string) => (
-                    <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
-                        {content}
-                        
-                        {/* Copy Full Bubble Content */}
-                        {rawText && rawText.trim() && (
-                            <div className="flex justify-end mt-2 pt-2 border-t border-black/5 dark:border-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
-                                <CopyButton content={rawText} isUser={isUser} />
-                            </div>
-                        )}
-                    </div>
+                  <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
+                    {content}
+
+                    {/* Copy Full Bubble Content */}
+                    {rawText && rawText.trim() && (
+                      <div className="flex justify-end mt-2 pt-2 border-t border-black/5 dark:border-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
+                        <CopyButton content={rawText} isUser={isUser} />
+                      </div>
+                    )}
+                  </div>
                 );
 
                 // Helper to render media grid
                 const renderMediaGrid = (mediaItems: { url: string, type: 'image' | 'video', name?: string }[], keyPrefix: string) => {
-                    if (!mediaItems || mediaItems.length === 0) return null;
-                    
-                    const content = (
-                        <div className="flex flex-wrap gap-2">
-                            {mediaItems.map((item, idx) => (
-                                <div 
-                                    key={`${keyPrefix}-${idx}`} 
-                                    className="relative rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 w-24 h-24 shrink-0 cursor-pointer hover:opacity-90 transition-opacity border border-gray-200 dark:border-gray-700"
-                                    onClick={() => setPreviewMedia(item)}
-                                >
-                                    {item.type === 'image' ? (
-                                        <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <video src={item.url} className="w-full h-full object-cover" />
-                                    )}
-                                </div>
-                            ))}
+                  if (!mediaItems || mediaItems.length === 0) return null;
+
+                  const content = (
+                    <div className="flex flex-wrap gap-2">
+                      {mediaItems.map((item, idx) => (
+                        <div
+                          key={`${keyPrefix}-${idx}`}
+                          className="relative rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 w-24 h-24 shrink-0 cursor-pointer hover:opacity-90 transition-opacity border border-gray-200 dark:border-gray-700"
+                          onClick={() => setPreviewMedia(item)}
+                        >
+                          {item.type === 'image' ? (
+                            <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <video src={item.url} className="w-full h-full object-cover" />
+                          )}
                         </div>
-                    );
-                    
-                    // Wrap in bubble to match text style
-                    return (
-                       <div key={keyPrefix} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${isUser ? 'bg-blue-600' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'}`}>
-                          {content}
-                       </div>
-                    );
+                      ))}
+                    </div>
+                  );
+
+                  // Wrap in bubble to match text style
+                  return (
+                    <div key={keyPrefix} className={`w-full rounded-2xl px-5 py-4 shadow-sm ${isUser ? 'bg-blue-600' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700'}`}>
+                      {content}
+                    </div>
+                  );
                 };
 
                 // 1. Attachments (Legacy/Local)
                 if (msg.attachments && msg.attachments.length > 0) {
-                   const mediaItems = msg.attachments.map(att => ({ url: att.url, type: att.type, name: att.name }));
-                   renderBlocks.push(renderMediaGrid(mediaItems, `att-${msg.id}`));
+                  const mediaItems = msg.attachments.map(att => ({ url: att.url, type: att.type, name: att.name }));
+                  renderBlocks.push(renderMediaGrid(mediaItems, `att-${msg.id}`));
                 }
 
                 const cleanText = (text: string) => {
-                    if (!text) return '';
-                    const marker = '\n\n【用户上传的素材库】:';
-                    const index = text.indexOf(marker);
-                    if (index !== -1) {
-                        return text.substring(0, index);
-                    }
-                    return text;
+                  if (!text) return '';
+                  const marker = '\n\n【用户上传的素材库】:';
+                  const index = text.indexOf(marker);
+                  if (index !== -1) {
+                    return text.substring(0, index);
+                  }
+                  return text;
                 };
 
                 const renderMultimodalContent = (content: any, msgId: string) => {
-                    if (typeof content === 'string') {
-                        const cleaned = cleanText(content);
-                        if (!cleaned) return null;
-                        return wrapInTextBubble(
-                            <MarkdownRenderer content={cleaned} className={isUser ? 'prose-invert' : ''} />
-                        , `${msgId}-content`, cleaned);
-                    }
+                  if (typeof content === 'string') {
+                    const cleaned = cleanText(content);
+                    if (!cleaned) return null;
+                    return wrapInTextBubble(
+                      <MarkdownRenderer content={cleaned} className={isUser ? 'prose-invert' : ''} />
+                      , `${msgId}-content`, cleaned);
+                  }
 
-                    if (Array.isArray(content)) {
-                        const mediaParts = content.filter(p => p.type === 'image_url' || p.type === 'video_url').map(p => ({
-                            url: p.type === 'image_url' ? p.image_url.url : p.video_url.url,
-                            type: (p.type === 'image_url' ? 'image' : 'video') as 'image' | 'video',
-                            name: 'media'
-                        }));
-                        const textParts = content.filter(p => p.type === 'text');
-                        
-                        return (
-                            <div key={`${msgId}-multimodal`} className="space-y-2 w-full">
-                                {renderMediaGrid(mediaParts, `${msgId}-media`)}
-                                {textParts.map((p, i) => {
-                                    const text = cleanText(p.text || p.content || '');
-                                    if (!text) return null;
-                                    return wrapInTextBubble(
-                                        <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
-                                    , `${msgId}-txt-${i}`, text);
-                                })}
-                            </div>
-                        );
-                    }
-                    return null;
+                  if (Array.isArray(content)) {
+                    const mediaParts = content.filter(p => p.type === 'image_url' || p.type === 'video_url').map(p => ({
+                      url: p.type === 'image_url' ? p.image_url.url : p.video_url.url,
+                      type: (p.type === 'image_url' ? 'image' : 'video') as 'image' | 'video',
+                      name: 'media'
+                    }));
+                    const textParts = content.filter(p => p.type === 'text');
+
+                    return (
+                      <div key={`${msgId}-multimodal`} className="space-y-2 w-full">
+                        {renderMediaGrid(mediaParts, `${msgId}-media`)}
+                        {textParts.map((p, i) => {
+                          const text = cleanText(p.text || p.content || '');
+                          if (!text) return null;
+                          return wrapInTextBubble(
+                            <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
+                            , `${msgId}-txt-${i}`, text);
+                        })}
+                      </div>
+                    );
+                  }
+                  return null;
                 };
 
                 // Helper for Naked Blocks (No Bubble, just the component)
                 // These components (Reasoning, ToolCalls, ToolResult) already have their own borders/backgrounds.
                 // We add 'w-full' to ensure they take available width in the flex column.
                 const renderNakedBlock = (content: React.ReactNode, key: string) => (
-                    <div key={key} className="w-full">
-                        {content}
-                    </div>
+                  <div key={key} className="w-full">
+                    {content}
+                  </div>
                 );
 
                 // 2. Parts or Legacy
                 if (msg.parts && msg.parts.length > 0) {
-                    msg.parts.forEach((part, pIdx) => {
-                        const key = `${msg.id}-p${pIdx}`;
-                        if (part.type === 'reasoning') {
-                            renderBlocks.push(renderNakedBlock(<ReasoningBlock content={part.content} />, key));
-                        } else if (part.type === 'tool_calls') {
-                            part.tool_calls.forEach((call, tcIdx) => {
-                                renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${key}-tc${tcIdx}`));
-                            });
-                        } else if (part.type === 'tool_result') {
-                            part.tool_result.forEach((res, rIdx) => {
-                                if (!isToolResultEmpty(res.output, res.name)) {
-                                    renderBlocks.push(renderNakedBlock(
-                                        <ToolResultBlock content={res.output} toolName={res.name} />
-                                    , `${key}-tr${rIdx}`));
-                                }
-                            });
-                        } else if (part.type === 'text') {
-                            if (msg.role === 'tool' || msg.role === 'tool_result') {
-                                if (!isToolResultEmpty(part.content)) {
-                                    renderBlocks.push(renderNakedBlock(<ToolResultBlock content={part.content} />, key));
-                                }
-                            } else {
-                                // Multimodal check inside parts if content is not just a string
-                                renderBlocks.push(renderMultimodalContent(part.content, key));
-                            }
+                  msg.parts.forEach((part, pIdx) => {
+                    const key = `${msg.id}-p${pIdx}`;
+                    if (part.type === 'reasoning') {
+                      renderBlocks.push(renderNakedBlock(<ReasoningBlock content={part.content} />, key));
+                    } else if (part.type === 'tool_calls') {
+                      part.tool_calls.forEach((call, tcIdx) => {
+                        renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${key}-tc${tcIdx}`));
+                      });
+                    } else if (part.type === 'tool_result') {
+                      part.tool_result.forEach((res, rIdx) => {
+                        if (!isToolResultEmpty(res.output, res.name)) {
+                          renderBlocks.push(renderNakedBlock(
+                            <ToolResultBlock content={res.output} toolName={res.name} />
+                            , `${key}-tr${rIdx}`));
                         }
-                    });
+                      });
+                    } else if (part.type === 'text') {
+                      if (msg.role === 'tool' || msg.role === 'tool_result') {
+                        if (!isToolResultEmpty(part.content)) {
+                          renderBlocks.push(renderNakedBlock(<ToolResultBlock content={part.content} />, key));
+                        }
+                      } else {
+                        // Multimodal check inside parts if content is not just a string
+                        renderBlocks.push(renderMultimodalContent(part.content, key));
+                      }
+                    }
+                  });
                 } else {
-                    // Legacy Rendering
-                    // Reasoning
-                    if (msg.reasoning_content && !isUser) {
-                        renderBlocks.push(renderNakedBlock(<ReasoningBlock content={msg.reasoning_content} />, `${msg.id}-reasoning`));
+                  // Legacy Rendering
+                  // Reasoning
+                  if (msg.reasoning_content && !isUser) {
+                    renderBlocks.push(renderNakedBlock(<ReasoningBlock content={msg.reasoning_content} />, `${msg.id}-reasoning`));
+                  }
+                  // Tool Calls
+                  if (msg.tool_calls && msg.tool_calls.length > 0) {
+                    msg.tool_calls.forEach((call, tcIdx) => {
+                      renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${msg.id}-call-${tcIdx}`));
+                    });
+                  }
+                  // Tool Results
+                  if (msg.tool_result && msg.tool_result.length > 0) {
+                    msg.tool_result.forEach((res, rIdx) => {
+                      if (!isToolResultEmpty(res.output, res.name)) {
+                        renderBlocks.push(renderNakedBlock(
+                          <ToolResultBlock content={res.output} toolName={res.name} />
+                          , `${msg.id}-res-${rIdx}`));
+                      }
+                    });
+                  }
+                  // Content
+                  if (msg.content) {
+                    if (msg.role === 'tool' || msg.role === 'tool_result') {
+                      if (!isToolResultEmpty(msg.content)) {
+                        renderBlocks.push(renderNakedBlock(<ToolResultBlock content={msg.content} />, `${msg.id}-content`));
+                      }
+                    } else {
+                      renderBlocks.push(renderMultimodalContent(msg.content, msg.id));
                     }
-                    // Tool Calls
-                    if (msg.tool_calls && msg.tool_calls.length > 0) {
-                        msg.tool_calls.forEach((call, tcIdx) => {
-                            renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${msg.id}-call-${tcIdx}`));
-                        });
-                    }
-                    // Tool Results
-                    if (msg.tool_result && msg.tool_result.length > 0) {
-                        msg.tool_result.forEach((res, rIdx) => {
-                             if (!isToolResultEmpty(res.output, res.name)) {
-                                renderBlocks.push(renderNakedBlock(
-                                    <ToolResultBlock content={res.output} toolName={res.name} />
-                                , `${msg.id}-res-${rIdx}`));
-                             }
-                        });
-                    }
-                    // Content
-                    if (msg.content) {
-                        if (msg.role === 'tool' || msg.role === 'tool_result') {
-                             if (!isToolResultEmpty(msg.content)) {
-                                renderBlocks.push(renderNakedBlock(<ToolResultBlock content={msg.content} />, `${msg.id}-content`));
-                             }
-                        } else {
-                            renderBlocks.push(renderMultimodalContent(msg.content, msg.id));
-                        }
-                    }
+                  }
                 }
 
                 // Interrupt (Universal)
                 if (msg.interrupt_info) {
-                    renderBlocks.push(renderNakedBlock(
-                       <InterruptBlock 
-                         info={msg.interrupt_info} 
-                         onRespond={onInterruptResponse}
-                         isResponded={!!msg.interrupted}
-                         isActive={msgIndex === group.messages.length - 1 && groupIndex === groupedMessages.length - 1}
-                       />
+                  renderBlocks.push(renderNakedBlock(
+                    <InterruptBlock
+                      info={msg.interrupt_info}
+                      onRespond={onInterruptResponse}
+                      isResponded={!!msg.interrupted}
+                      isActive={msgIndex === group.messages.length - 1 && groupIndex === groupedMessages.length - 1}
+                    />
                     , `${msg.id}-interrupt`));
                 }
 
@@ -329,55 +332,71 @@ export const MessageList: React.FC<Props> = ({ messages, onInterruptResponse, is
           </div>
         );
       })}
-      
+
       {isLoading && (
         <div className="flex gap-4">
-           <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
-              <Bot className="w-5 h-5 text-white" />
-           </div>
-           <div className="bg-white dark:bg-gray-800 rounded-2xl px-5 py-4 border border-gray-100 dark:border-gray-700 flex items-center">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-              </div>
-           </div>
+          <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl px-5 py-4 border border-gray-100 dark:border-gray-700 flex items-center">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Preview Modal */}
       {previewMedia && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setPreviewMedia(null)}>
-           <div className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
-              <button 
-                  onClick={() => setPreviewMedia(null)}
-                  className="absolute -top-12 right-0 text-white hover:text-gray-300 p-2"
-              >
-                  <X className="w-8 h-8" />
-              </button>
+          <div className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewMedia(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 p-2"
+            >
+              <X className="w-8 h-8" />
+            </button>
 
-              <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800 w-auto h-auto flex justify-center items-center">
-                 {previewMedia.type === 'image' ? (
-                     <img src={previewMedia.url} alt={previewMedia.name} className="max-w-full max-h-[80vh] object-contain" />
-                 ) : (
-                     <video src={previewMedia.url} controls className="max-w-full max-h-[80vh]" />
-                 )}
-              </div>
-              
-              <div className="flex gap-4 mt-4">
-                  <a 
-                    href={previewMedia.url} 
-                    download={previewMedia.name || 'media'}
-                    className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-full font-medium transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                      <Download className="w-4 h-4" />
-                      Download
-                  </a>
-              </div>
-           </div>
+            <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800 w-auto h-auto flex justify-center items-center">
+              {previewMedia.type === 'image' ? (
+                <img src={previewMedia.url} alt={previewMedia.name} className="max-w-full max-h-[80vh] object-contain" />
+              ) : (
+                <video src={previewMedia.url} controls className="max-w-full max-h-[80vh]" />
+              )}
+            </div>
+
+            <div className="flex gap-4 mt-4">
+              <a
+                href={previewMedia.url}
+                download={previewMedia.name || 'media'}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-full font-medium transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </a>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for memo optimization
+  // Only re-render if messages actually changed meaningfully
+  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (prevProps.messages.length !== nextProps.messages.length) return false;
+
+  // If lengths are same, check if last message content changed
+  if (prevProps.messages.length > 0 && nextProps.messages.length > 0) {
+    const prevLast = prevProps.messages[prevProps.messages.length - 1];
+    const nextLast = nextProps.messages[nextProps.messages.length - 1];
+
+    if (prevLast.content !== nextLast.content) return false;
+    if (prevLast.parts?.length !== nextLast.parts?.length) return false;
+  }
+
+  return true; // Props are equal, skip re-render
+});

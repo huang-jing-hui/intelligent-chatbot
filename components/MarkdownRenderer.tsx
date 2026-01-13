@@ -66,9 +66,9 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
     if (!content) return null;
     console.warn('MarkdownRenderer received non-string content:', content);
     if (typeof content === 'number') {
-        content = String(content);
+      content = String(content);
     } else {
-        return null;
+      return null;
     }
   }
 
@@ -97,21 +97,21 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
         components={{
           // Avoid default 'pre' styling from Tailwind Typography
           pre: ({ children }) => <>{children}</>,
-          img: ({node, ...props}) => (
-            <img 
-              className="max-w-xs max-h-48 object-contain rounded-lg shadow-sm my-2" 
-              {...props} 
+          img: ({ node, ...props }) => (
+            <img
+              className="max-w-xs max-h-48 object-contain rounded-lg shadow-sm my-2"
+              {...props}
             />
           ),
-          table: ({node, ...props}) => (
+          table: ({ node, ...props }) => (
             <div className="my-6 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
               <table className="min-w-full border-collapse" {...props} />
             </div>
           ),
-          thead: ({node, ...props}) => <thead className="bg-gray-50 dark:bg-white/5" {...props} />,
-          th: ({node, ...props}) => <th className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
-          td: ({node, ...props}) => <td className="border-b border-gray-100 dark:border-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300" {...props} />,
-          
+          thead: ({ node, ...props }) => <thead className="bg-gray-50 dark:bg-white/5" {...props} />,
+          th: ({ node, ...props }) => <th className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
+          td: ({ node, ...props }) => <td className="border-b border-gray-100 dark:border-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300" {...props} />,
+
           code(props: any) {
             const { children, className, node, ...rest } = props;
             const match = /language-(\w+)/.exec(className || '');
@@ -134,4 +134,8 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
       </ReactMarkdown>
     </article>
   );
+}, (prevProps, nextProps) => {
+  // Only re-render if content or className actually changed
+  return prevProps.content === nextProps.content &&
+    prevProps.className === nextProps.className;
 });
