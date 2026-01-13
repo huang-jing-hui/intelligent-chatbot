@@ -29,7 +29,7 @@ const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) =
     <button
       onClick={handleCopy}
       className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser
-        ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+        ? 'bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70'
         : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400'}`}
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -39,16 +39,36 @@ const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) =
 };
 
 const DeleteButton = ({ isUser, onDelete }: { isUser: boolean; onDelete: () => void }) => {
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (confirming) {
+      const timer = setTimeout(() => setConfirming(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [confirming]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirming) {
+      onDelete();
+    } else {
+      setConfirming(true);
+    }
+  };
+
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); onDelete(); }}
+      onClick={handleClick}
       className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser
-        ? 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-red-300'
+        ? 'bg-blue-100 text-blue-600 hover:bg-red-100 hover:text-red-600 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-red-900/30 dark:hover:text-red-400'
         : 'bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400'}`}
       title="Delete Message"
     >
-      <Trash2 className="w-3.5 h-3.5" />
-      <span className="text-[10px] font-medium uppercase tracking-wider">Delete</span>
+      <Trash2 className={`w-3.5 h-3.5 ${confirming ? 'text-red-500' : ''}`} />
+      <span className={`text-[10px] font-medium uppercase tracking-wider ${confirming ? 'text-red-500' : ''}`}>
+        {confirming ? 'Confirm?' : 'Delete'}
+      </span>
     </button>
   );
 };
@@ -108,7 +128,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     const isNewLoad = lastMessagesLength.current === 0 && messages.length > 0;
     const isNewMessage = messages.length > lastMessagesLength.current && lastMessagesLength.current > 0;
     const isStillStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant' && isStreaming;
-    
+
     // Check if we finished loading more messages
     const justFinishedLoadingMore = !isLoadingMore && (messages.length > lastMessagesLength.current);
 
@@ -122,7 +142,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
            container.scrollTop = diff + container.scrollTop; // Usually scrollTop was 0 or small, so this sets it to diff
         }
         previousScrollHeight.current = 0; // Reset
-    } 
+    }
     else if (isNewLoad) {
       container.style.scrollBehavior = 'auto';
       container.scrollTop = container.scrollHeight;
@@ -203,19 +223,19 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
                 // Helper for Text Bubbles ONLY
                 const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string, msgId?: string) => (
-                  <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
+                  <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-50 text-gray-800 dark:bg-blue-900/30 dark:text-gray-200' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
                     {content}
 
                     {/* Footer Actions: Copy & Delete */}
                     {(rawText && rawText.trim() || (msg.message_id && onDeleteMessage)) && (
                       <div className="flex justify-end mt-2 pt-2 border-t border-black/5 dark:border-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity gap-2">
                         {rawText && rawText.trim() && <CopyButton content={rawText} isUser={isUser} />}
-                        
+
                         {/* Only show delete button if message has a message_id (persisted on server) */}
                         {msg.message_id && onDeleteMessage && (
-                          <DeleteButton 
-                            isUser={isUser} 
-                            onDelete={() => onDeleteMessage(msg.id)} 
+                          <DeleteButton
+                            isUser={isUser}
+                            onDelete={() => onDeleteMessage(msg.id)}
                           />
                         )}
                       </div>
@@ -271,7 +291,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                     const cleaned = cleanText(content);
                     if (!cleaned) return null;
                     return wrapInTextBubble(
-                      <MarkdownRenderer content={cleaned} className={isUser ? 'prose-invert' : ''} />
+                      <MarkdownRenderer content={cleaned} className={isUser ? '' : ''} />
                       , `${msgId}-content`, cleaned, msg.id);
                   }
 
@@ -290,7 +310,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                           const text = cleanText(p.text || p.content || '');
                           if (!text) return null;
                           return wrapInTextBubble(
-                            <MarkdownRenderer content={text} className={isUser ? 'prose-invert' : ''} />
+                            <MarkdownRenderer content={text} className={isUser ? '' : ''} />
                             , `${msgId}-txt-${i}`, text, msg.id);
                         })}
                       </div>
