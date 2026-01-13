@@ -157,7 +157,7 @@ export const deleteChat = async (chatId: string) => {
 };
 
 export const deleteChatSpecify = async (chatId: string, message_ids: string[]) => {
-    return fetch(`${API_BASE_URL}/v1/chat/delete/specify`, {
+    const response = await fetch(`${API_BASE_URL}/v1/chat/delete/specify`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -170,6 +170,12 @@ export const deleteChatSpecify = async (chatId: string, message_ids: string[]) =
             "message_ids": message_ids
         })
     });
+    const data = await response.json();
+    if (data.status === 'success') {
+        return null
+    }else {
+        return `删除失败: ${data.message || '未知错误'}`;
+    }
 };
 
 export const uploadFile = async (url: string): Promise<string> => {

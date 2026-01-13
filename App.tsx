@@ -59,18 +59,18 @@ const App: React.FC = () => {
       } else {
         setIsLoading(true);
       }
-      
+
       const currentOffset = isLoadMore ? offset : 0;
-      
+
       const msgs = await getChatMessages(id, currentOffset, LIMIT);
-      
+
       // The API returns messages in reverse order (newest first), so we reverse them for display
       const orderedMsgs = [...msgs].reverse();
 
       setMessages(prev => {
         const existingIds = new Set(isLoadMore ? prev.map(m => m.message_id).filter(Boolean) : []);
         const uniqueNewMsgs = orderedMsgs.filter(m => !m.message_id || !existingIds.has(m.message_id));
-        
+
         return isLoadMore ? [...uniqueNewMsgs, ...prev] : uniqueNewMsgs;
       });
 
@@ -126,7 +126,7 @@ const App: React.FC = () => {
 
     // Find all messages that share this ID (representing the turn)
     const msgsToDelete = messages.filter(m => m.id === targetMsg.id);
-    
+
     // Collect backend message_ids
     const backendIds = Array.from(new Set(
       msgsToDelete
@@ -138,10 +138,14 @@ const App: React.FC = () => {
     if (backendIds.length === 0) return;
 
     try {
-      await deleteChatSpecify(currentSessionId, backendIds);
-      
-      // Update UI: Remove all messages with this grouping ID
-      setMessages(prev => prev.filter(m => m.id !== targetMsg.id));
+      const result = await deleteChatSpecify(currentSessionId, backendIds);
+      if (result) {
+        alert(result)
+      }else {
+        // Update UI: Remove all messages with this grouping ID
+        setMessages(prev => prev.filter(m => m.id !== targetMsg.id));
+      }
+
     } catch (error) {
       console.error("Failed to delete message", error);
       alert("Failed to delete message");
@@ -192,7 +196,7 @@ const App: React.FC = () => {
       // Create placeholder assistant message
       const assistantId = uuidv4();
       const initialAssistantMsg: Message = {
-        id: assistantId, // Same ID logic? No, uuidv4() generates unique. 
+        id: assistantId, // Same ID logic? No, uuidv4() generates unique.
                          // Wait, user says "User and AI message of one turn have same id".
                          // In `handleSendMessage`, I am generating separate IDs: `userMsg.id` and `initialAssistantMsg.id`.
                          // If the backend returns them with same ID, `getChatMessages` will sync that.
@@ -248,7 +252,7 @@ const App: React.FC = () => {
       });
 
       let currentToolCalls: { [index: number]: ToolCall } = {};
-      
+
       // Optimization: Local buffer to reduce React state updates
       let accumulatedMessage = { ...initialAssistantMsg };
       let lastUpdateTime = 0;
@@ -354,7 +358,7 @@ const App: React.FC = () => {
                 msg.parts.push(resultPart);
             }
             resultPart.tool_result.push(delta.tool_result);
-            
+
              // Legacy update
             msg.tool_result = msg.tool_result ? [...msg.tool_result] : [];
             msg.tool_result.push(delta.tool_result);
@@ -408,7 +412,7 @@ const App: React.FC = () => {
     <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -418,7 +422,7 @@ const App: React.FC = () => {
       <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${ 
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <Sidebar 
+        <Sidebar
           sessions={sessions}
           currentSessionId={currentSessionId}
           onSelectSession={setCurrentSessionId}
@@ -460,7 +464,7 @@ const App: React.FC = () => {
         />
 
         {/* Input Area */}
-        <ChatInput 
+        <ChatInput
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
         />
