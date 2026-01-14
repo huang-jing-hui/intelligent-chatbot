@@ -170,16 +170,7 @@ interface InterruptBlockProps {
 export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond, isResponded, isActive }) => {
   const [inputValue, setInputValue] = useState('');
 
-  const isDisabled = isResponded || !isActive; // Disable if already responded OR not the active interrupt
-
-  if (isResponded) {
-     return (
-        <div className="my-3 p-4 border border-green-200 dark:border-green-900 rounded-lg bg-green-50 dark:bg-green-900/10 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600" />
-            <span className="text-sm text-green-800 dark:text-green-200">Action completed</span>
-        </div>
-     )
-  }
+  const showControls = !isResponded && isActive;
 
   return (
     <div className="my-3 border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/10 p-4 rounded-r-lg shadow-sm">
@@ -191,12 +182,18 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
           </h4>
           <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">{info.message}</p>
 
-          {info.type === 'approval_required' && (
+          {isResponded && (
+             <div className="flex items-center gap-2 mt-2 text-green-700 dark:text-green-400 font-medium text-sm">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Action completed</span>
+             </div>
+          )}
+
+          {showControls && info.type === 'approval_required' && (
             <div className="flex gap-3">
               <button
                 onClick={() => onRespond('yes')}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
-                disabled={isDisabled}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Yes, Approve
@@ -204,7 +201,6 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
               <button
                 onClick={() => onRespond('no')}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors shadow-sm"
-                disabled={isDisabled}
               >
                 <XCircle className="w-4 h-4" />
                 No, Reject
@@ -212,7 +208,7 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
             </div>
           )}
 
-          {info.type === 'input_required' && (
+          {showControls && info.type === 'input_required' && (
              <form
                onSubmit={(e) => { e.preventDefault(); onRespond(inputValue); }}
                className="flex gap-2"
@@ -223,12 +219,10 @@ export const InterruptBlock: React.FC<InterruptBlockProps> = ({ info, onRespond,
                   placeholder="Enter your input..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  disabled={isDisabled}
                 />
                 <button
                     type="submit"
                     className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors"
-                    disabled={isDisabled}
                 >
                     Submit
                 </button>

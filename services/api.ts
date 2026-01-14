@@ -39,7 +39,7 @@ export async function* streamChatCompletion(request: ChatRequest): AsyncGenerato
             if (trimmedLine.startsWith('data: ')) {
                 try {
                     const jsonStr = trimmedLine.slice(6);
-                    console.log('Received SSE chunk:', jsonStr);
+                    // console.log('Received SSE chunk:', jsonStr);
                     const chunk: StreamChunk = JSON.parse(jsonStr);
                     yield chunk;
                 } catch (e) {
