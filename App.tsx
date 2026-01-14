@@ -120,33 +120,13 @@ const App: React.FC = () => {
   const handleDeleteMessage = async (msgUniqueId: string) => {
     if (!currentSessionId) return;
 
-    // Find the target message to get its grouping ID (which is 'id' in our local state)
-    const targetMsg = messages.find(m => m.id === msgUniqueId);
-    if (!targetMsg) return;
-
-    // Find all messages that share this ID (representing the turn)
-    // Preference: stream_id -> id
-    const msgsToDelete = messages.filter(m => {
-       return m.id === targetMsg.id;
-    });
-
-    // Collect backend message_ids
-    const backendIds = Array.from(new Set(
-      msgsToDelete
-        .map(m => m.message_id)
-        .filter((id): id is string => !!id)
-    ));
-
-    // If no backend IDs, we can't delete from server (e.g. still streaming or error state without ID)
-    if (backendIds.length === 0) return;
-
     try {
-      const result = await deleteChatSpecify(currentSessionId, backendIds);
+      const result = await deleteChatSpecify(currentSessionId, msgUniqueId);
       if (result) {
         alert(result)
       }else {
         // Update UI: Remove all messages with this grouping ID
-        setMessages(prev => prev.filter(m => m.id !== targetMsg.id));
+        setMessages(prev => prev.filter(m => m.id !== msgUniqueId));
       }
 
     } catch (error) {
@@ -170,9 +150,22 @@ const App: React.FC = () => {
 
   const updateLastMessage = (updater: (msg: Message) => Message) => {
     setMessages(prev => {
+      if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
-      if (!last || last.role !== 'assistant') return prev;
-      return [...prev.slice(0, -1), updater({ ...last })];
+      if (last.role !== 'assistant') return prev;
+      
+      const updatedLast = updater({ ...last });
+      
+      // If the ID changed (e.g. from temp UUID to backend ID), update preceding messages in this turn
+      if (updatedLast.id !== last.id) {
+        const newMessages = prev.map(m => m.id === last.id ? { ...m, id: updatedLast.id } : m);
+        newMessages[newMessages.length - 1] = updatedLast;
+        return newMessages;
+      }
+
+      const newMessages = [...prev];
+      newMessages[newMessages.length - 1] = updatedLast;
+      return newMessages;
     });
   };
 
@@ -285,6 +278,14 @@ const App: React.FC = () => {
       };
 
       for await (const chunk of stream) {
+        // Update message ID if provided by backend
+        if (chunk.id && accumulatedMessage.id !== chunk.id) {
+            accumulatedMessage.id = chunk.id;
+        }
+        if (chunk.message_id && accumulatedMessage.message_id !== chunk.message_id) {
+            accumulatedMessage.message_id = chunk.message_id;
+        }
+
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 

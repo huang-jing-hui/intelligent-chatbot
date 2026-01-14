@@ -56,6 +56,7 @@ export interface InterruptInfo {
 
 export interface StreamChunk {
   id: string;
+  message_id?: string;
   object: string;
   created: number;
   model: string;

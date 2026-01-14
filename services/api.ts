@@ -39,7 +39,7 @@ export async function* streamChatCompletion(request: ChatRequest): AsyncGenerato
             if (trimmedLine.startsWith('data: ')) {
                 try {
                     const jsonStr = trimmedLine.slice(6);
-                    // console.log('Received SSE chunk:', jsonStr);
+                    console.log('Received SSE chunk:', jsonStr);
                     const chunk: StreamChunk = JSON.parse(jsonStr);
                     yield chunk;
                 } catch (e) {
@@ -157,7 +157,7 @@ export const deleteChat = async (chatId: string) => {
     });
 };
 
-export const deleteChatSpecify = async (chatId: string, message_ids: string[]) => {
+export const deleteChatSpecify = async (chatId: string, message_id: string) => {
     const response = await fetch(`${API_BASE_URL}/v1/chat/delete/specify`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -168,7 +168,7 @@ export const deleteChatSpecify = async (chatId: string, message_ids: string[]) =
                         "thread_id": chatId
                     }
                 },
-            "message_ids": message_ids
+            "message_id": message_id
         })
     });
     const data = await response.json();
