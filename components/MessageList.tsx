@@ -145,7 +145,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
       }
     });
     return groups;
-  }, [messages.length, messages[messages.length - 1]?.content, messages[messages.length - 1]?.parts?.length]);
+  }, [messages]);
 
 
   // Handle automatic scrolling and scroll restoration
@@ -505,6 +505,9 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
     if (prevLast.content !== nextLast.content) return false;
     if (prevLast.parts?.length !== nextLast.parts?.length) return false;
+    if (prevLast.interrupt_info !== nextLast.interrupt_info) return false;
+    if (prevLast.interrupted !== nextLast.interrupted) return false;
+    if (prevLast.tool_calls?.length !== nextLast.tool_calls?.length) return false;
   }
 
   return true; // Props are equal, skip re-render

@@ -173,7 +173,7 @@ const App: React.FC = () => {
     });
   };
 
-  const handleSendMessage = async (content: string, attachments: Attachment[]) => {
+  const handleSendMessage = async (content: string, attachments: Attachment[], interrupt: boolean = false) => {
     if ((!content.trim() && attachments.length === 0) || isLoading) return;
 
     setIsLoading(true);
@@ -190,7 +190,9 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
-    // setMessages(prev => [...prev, userMsg]);
+    if (!interrupt) {
+      setMessages(prev => [...prev, userMsg]);
+    }
 
     try {
       // Create placeholder assistant message
@@ -405,7 +407,7 @@ const App: React.FC = () => {
 
   const handleInterruptResponse = (response: string) => {
     // updateLastMessage(msg => ({ ...msg, interrupted: true }));
-    handleSendMessage(response, []);
+    handleSendMessage(response, [], true);
   };
 
   return (
