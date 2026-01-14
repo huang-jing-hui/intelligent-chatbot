@@ -6,7 +6,7 @@ import { User, Bot, Terminal, X, Download, Copy, Check, Trash2 } from 'lucide-re
 
 interface Props {
   messages: Message[];
-  onInterruptResponse: (response: string) => void;
+  onInterruptResponse: (response: string, streamId?: string) => void;
   isLoading: boolean;
   isStreaming: boolean;
   onDeleteMessage?: (id: string) => void;
@@ -248,6 +248,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
               {group.messages.map((msg, msgIndex) => {
                 const renderBlocks: React.ReactNode[] = [];
+                const msgKey = `${msg.id}-${msgIndex}`;
 
                 // Helper for Text Bubbles ONLY
                 const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string, msgId?: string) => (
@@ -301,7 +302,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                 // 1. Attachments (Legacy/Local)
                 if (msg.attachments && msg.attachments.length > 0) {
                   const mediaItems = msg.attachments.map(att => ({ url: att.url, type: att.type, name: att.name }));
-                  renderBlocks.push(renderMediaGrid(mediaItems, `att-${msg.id}`));
+                  renderBlocks.push(renderMediaGrid(mediaItems, `att-${msgKey}`));
                 }
 
                 const cleanText = (text: string) => {
@@ -359,7 +360,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                 // 2. Parts or Legacy
                 if (msg.parts && msg.parts.length > 0) {
                   msg.parts.forEach((part, pIdx) => {
-                    const key = `${msg.id}-p${pIdx}`;
+                    const key = `${msgKey}-p${pIdx}`;
                     if (part.type === 'reasoning') {
                       renderBlocks.push(renderNakedBlock(<ReasoningBlock content={part.content} />, key));
                     } else if (part.type === 'tool_calls') {
@@ -389,12 +390,12 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   // Legacy Rendering
                   // Reasoning
                   if (msg.reasoning_content && !isUser) {
-                    renderBlocks.push(renderNakedBlock(<ReasoningBlock content={msg.reasoning_content} />, `${msg.id}-reasoning`));
+                    renderBlocks.push(renderNakedBlock(<ReasoningBlock content={msg.reasoning_content} />, `${msgKey}-reasoning`));
                   }
                   // Tool Calls
                   if (msg.tool_calls && msg.tool_calls.length > 0) {
                     msg.tool_calls.forEach((call, tcIdx) => {
-                      renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} completedIds={completedToolIds} />, `${msg.id}-call-${tcIdx}`));
+                      renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} completedIds={completedToolIds} />, `${msgKey}-call-${tcIdx}`));
                     });
                   }
                   // Tool Results
@@ -403,7 +404,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                       if (!isToolResultEmpty(res.output, res.name)) {
                         renderBlocks.push(renderNakedBlock(
                           <ToolResultBlock content={res.output} toolName={res.name} />
-                          , `${msg.id}-res-${rIdx}`));
+                          , `${msgKey}-res-${rIdx}`));
                       }
                     });
                   }
@@ -411,7 +412,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   if (msg.content) {
                     if (msg.role === 'tool' || msg.role === 'tool_result') {
                       if (!isToolResultEmpty(msg.content)) {
-                        renderBlocks.push(renderNakedBlock(<ToolResultBlock content={msg.content} />, `${msg.id}-content`));
+                        renderBlocks.push(renderNakedBlock(<ToolResultBlock content={msg.content} />, `${msgKey}-content`));
                       }
                     } else {
                       renderBlocks.push(renderMultimodalContent(msg.content, msg.id));
@@ -424,11 +425,11 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   renderBlocks.push(renderNakedBlock(
                     <InterruptBlock
                       info={msg.interrupt_info}
-                      onRespond={onInterruptResponse}
+                      onRespond={(resp) => onInterruptResponse(resp, msg.id)}
                       isResponded={!!msg.interrupted}
                       isActive={msgIndex === group.messages.length - 1 && groupIndex === groupedMessages.length - 1}
                     />
-                    , `${msg.id}-interrupt`));
+                    , `${msgKey}-interrupt`));
                 }
 
                 return renderBlocks;

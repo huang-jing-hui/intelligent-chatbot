@@ -97,6 +97,7 @@ export interface ChatSession {
 
 export interface ChatRequest {
   model: string;
+  stream_id?: string;
   messages: {
     role: string;
     content: string | any[]; // Relaxed to support array of content parts

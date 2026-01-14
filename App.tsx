@@ -125,7 +125,10 @@ const App: React.FC = () => {
     if (!targetMsg) return;
 
     // Find all messages that share this ID (representing the turn)
-    const msgsToDelete = messages.filter(m => m.id === targetMsg.id);
+    // Preference: stream_id -> id
+    const msgsToDelete = messages.filter(m => {
+       return m.id === targetMsg.id;
+    });
 
     // Collect backend message_ids
     const backendIds = Array.from(new Set(
@@ -173,17 +176,18 @@ const App: React.FC = () => {
     });
   };
 
-  const handleSendMessage = async (content: string, attachments: Attachment[], interrupt: boolean = false) => {
+  const handleSendMessage = async (content: string, attachments: Attachment[], interrupt: boolean = false, streamId?: string) => {
     if ((!content.trim() && attachments.length === 0) || isLoading) return;
 
     setIsLoading(true);
 
     const sessionId = currentSessionId || uuidv4();
+    const currentStreamId = streamId || uuidv4(); // Generate or reuse stream ID (which is also the message ID)
     lastStreamedIdRef.current = sessionId;
 
     // Add user message to UI
     const userMsg: Message = {
-      id: uuidv4(),
+      id: currentStreamId, // Use stream ID as message ID
       role: 'user',
       content: content,
       attachments: attachments,
@@ -196,17 +200,9 @@ const App: React.FC = () => {
 
     try {
       // Create placeholder assistant message
-      const assistantId = uuidv4();
+      const assistantId = currentStreamId; // Use same ID for grouping
       const initialAssistantMsg: Message = {
-        id: assistantId, // Same ID logic? No, uuidv4() generates unique.
-                         // Wait, user says "User and AI message of one turn have same id".
-                         // In `handleSendMessage`, I am generating separate IDs: `userMsg.id` and `initialAssistantMsg.id`.
-                         // If the backend returns them with same ID, `getChatMessages` will sync that.
-                         // But for now, they are different in local state.
-                         // However, `handleDeleteMessage` relies on `m.id === targetMsg.id`.
-                         // If I delete userMsg, I only delete userMsg.
-                         // If the user wants to delete the pair, I might need to link them.
-                         // But for now I'll stick to deleting what is clicked (and its group if any).
+        id: assistantId,
         role: 'assistant',
         content: '',
         parts: [], // Initialize parts
@@ -248,6 +244,7 @@ const App: React.FC = () => {
 
       const stream = streamChatCompletion({
         model: 'deepseek-reasoner',
+        stream_id: currentStreamId,
         messages: apiMessages,
         stream: true,
         config: { configurable: { thread_id: sessionId } }
@@ -405,9 +402,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleInterruptResponse = (response: string) => {
+  const handleInterruptResponse = (response: string, streamId?: string) => {
     // updateLastMessage(msg => ({ ...msg, interrupted: true }));
-    handleSendMessage(response, [], true);
+    handleSendMessage(response, [], true, streamId);
   };
 
   return (
