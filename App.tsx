@@ -190,7 +190,7 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    // setMessages(prev => [...prev, userMsg]);
 
     try {
       // Create placeholder assistant message

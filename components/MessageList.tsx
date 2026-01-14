@@ -95,6 +95,34 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
   const previousScrollHeight = useRef(0);
   const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video', name?: string } | null>(null);
 
+  // Compute completed tool call IDs to pass to ToolCallsBlock
+  const completedToolIds = useMemo(() => {
+    const ids = new Set<string>();
+    messages.forEach(msg => {
+      // Check legacy tool_result
+      if (msg.tool_result) {
+        msg.tool_result.forEach(res => {
+            if (res.tool_call_id) ids.add(res.tool_call_id);
+        });
+      }
+      // Check parts
+      if (msg.parts) {
+        msg.parts.forEach(part => {
+          if (part.type === 'tool_result') {
+            part.tool_result.forEach(res => {
+                if (res.tool_call_id) ids.add(res.tool_call_id);
+            });
+          }
+        });
+      }
+      // Check direct message role
+      if ((msg.role === 'tool' || msg.role === 'tool_result') && msg.tool_call_id) {
+          ids.add(msg.tool_call_id);
+      }
+    });
+    return ids;
+  }, [messages]);
+
   // Group messages logic - optimized with shallow comparison
   const groupedMessages = useMemo(() => {
     const groups: { role: 'user' | 'bot'; messages: Message[] }[] = [];
@@ -336,7 +364,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                       renderBlocks.push(renderNakedBlock(<ReasoningBlock content={part.content} />, key));
                     } else if (part.type === 'tool_calls') {
                       part.tool_calls.forEach((call, tcIdx) => {
-                        renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${key}-tc${tcIdx}`));
+                        renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} completedIds={completedToolIds} />, `${key}-tc${tcIdx}`));
                       });
                     } else if (part.type === 'tool_result') {
                       part.tool_result.forEach((res, rIdx) => {
@@ -366,7 +394,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   // Tool Calls
                   if (msg.tool_calls && msg.tool_calls.length > 0) {
                     msg.tool_calls.forEach((call, tcIdx) => {
-                      renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} />, `${msg.id}-call-${tcIdx}`));
+                      renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]} completedIds={completedToolIds} />, `${msg.id}-call-${tcIdx}`));
                     });
                   }
                   // Tool Results

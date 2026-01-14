@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrainCircuit, Wrench, Terminal, CheckCircle2, XCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { BrainCircuit, Wrench, Terminal, CheckCircle2, XCircle, AlertCircle, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ToolCall, InterruptInfo } from '../types';
 
@@ -28,20 +28,28 @@ export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
-export const ToolCallsBlock: React.FC<{ calls: ToolCall[] }> = ({ calls }) => {
+export const ToolCallsBlock: React.FC<{ calls: ToolCall[], completedIds?: Set<string> }> = ({ calls, completedIds }) => {
   if (!calls || calls.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="my-2 flex flex-col gap-2 w-full">
       {calls.map((call, idx) => (
-        <ToolCallItem key={call.id || idx} call={call} />
+        <ToolCallItem 
+          key={call.id || idx} 
+          call={call} 
+          isCompleted={completedIds ? completedIds.has(call.id) : true} 
+        />
       ))}
     </div>
   );
 };
 
-const ToolCallItem: React.FC<{ call: ToolCall }> = ({ call }) => {
+const ToolCallItem: React.FC<{ call: ToolCall, isCompleted: boolean }> = ({ call, isCompleted }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Safety check for streaming/partial data
+  const functionName = call.function?.name || 'Tool';
+  const args = call.function?.arguments || '';
 
   return (
     <div className="border border-purple-200 dark:border-purple-800 rounded-lg overflow-hidden bg-purple-50 dark:bg-purple-900/10">
@@ -49,14 +57,18 @@ const ToolCallItem: React.FC<{ call: ToolCall }> = ({ call }) => {
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
       >
-        <Wrench className="w-3.5 h-3.5" />
-        <span className="truncate">{call.function.name}</span>
+        {isCompleted ? (
+          <Wrench className="w-3.5 h-3.5" />
+        ) : (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        )}
+        <span className="truncate">{functionName}</span>
         {isExpanded ? <ChevronDown className="w-3 h-3 ml-auto shrink-0" /> : <ChevronRight className="w-3 h-3 ml-auto shrink-0" />}
       </button>
 
       {isExpanded && (
         <div className="px-3 py-2 text-xs font-mono text-gray-700 dark:text-gray-300 overflow-x-auto border-t border-purple-200 dark:border-purple-800 bg-white/50 dark:bg-black/20">
-          {call.function.arguments}
+          {args}
         </div>
       )}
     </div>
