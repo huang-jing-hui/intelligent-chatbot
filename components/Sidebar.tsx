@@ -92,7 +92,7 @@ export const Sidebar: React.FC<Props> = ({
                   }}
                 />
               ) : (
-                <p className={`text-sm truncate ${
+                <p className={`text-[13px] truncate ${
                   currentSessionId === session.id ? 'font-medium text-gray-900 dark:text-white' : ''
                 }`}>
                   {session.title || 'New Conversation'}
@@ -147,8 +147,8 @@ export const Sidebar: React.FC<Props> = ({
          <div className="flex items-center gap-3 px-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500" />
             <div className="flex-1 min-w-0">
-               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Hjh</p>
-               <p className="text-xs text-gray-500 truncate">jump</p>
+               <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">Hjh</p>
+               <p className="text-[11px] text-gray-500 truncate">jump</p>
             </div>
          </div>
       </div>

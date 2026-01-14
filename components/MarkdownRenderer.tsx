@@ -44,9 +44,9 @@ const CodeBlock = ({ language, value }: { language: string; value: string }) => 
           PreTag="div"
           customStyle={{
             margin: 0,
-            padding: '1rem',
-            fontSize: '0.85rem',
-            lineHeight: '1.5',
+            padding: '0.75rem',
+            fontSize: '0.8rem',
+            lineHeight: '1.4',
             background: 'transparent',
           }}
           codeTagProps={{
@@ -90,7 +90,7 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
     .join('\n');
 
   return (
-    <article className={`prose prose-sm lg:prose-base dark:prose-invert max-w-none ${className}`}>
+    <article className={`prose prose-sm dark:prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -104,13 +104,13 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
             />
           ),
           table: ({ node, ...props }) => (
-            <div className="my-6 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+            <div className="my-4 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm text-[13px]">
               <table className="min-w-full border-collapse" {...props} />
             </div>
           ),
           thead: ({ node, ...props }) => <thead className="bg-gray-50 dark:bg-white/5" {...props} />,
-          th: ({ node, ...props }) => <th className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
-          td: ({ node, ...props }) => <td className="border-b border-gray-100 dark:border-gray-900 px-4 py-3 text-sm text-gray-600 dark:text-gray-300" {...props} />,
+          th: ({ node, ...props }) => <th className="border-b border-gray-200 dark:border-gray-800 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
+          td: ({ node, ...props }) => <td className="border-b border-gray-100 dark:border-gray-900 px-3 py-2 text-[13px] text-gray-600 dark:text-gray-300" {...props} />,
 
           code(props: any) {
             const { children, className, node, ...rest } = props;

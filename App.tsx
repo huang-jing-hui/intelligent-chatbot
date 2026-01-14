@@ -442,10 +442,10 @@ const App: React.FC = () => {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex flex-col">
-            <h1 className="font-semibold text-sm lg:text-base">
+            <h1 className="font-semibold text-xs lg:text-sm">
               {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
             </h1>
-            <span className="text-xs text-green-500 flex items-center gap-1">
+            <span className="text-[10px] text-green-500 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
               Online
             </span>

@@ -223,7 +223,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
                 // Helper for Text Bubbles ONLY
                 const wrapInTextBubble = (content: React.ReactNode, key: string, rawText?: string, msgId?: string) => (
-                  <div key={key} className={`w-full rounded-2xl px-5 py-4 shadow-sm group/bubble ${isUser ? 'bg-blue-50 text-gray-800 dark:bg-blue-900/30 dark:text-gray-200' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200'}`}>
+                  <div key={key} className={`w-full rounded-2xl px-4 py-3 shadow-sm group/bubble ${isUser ? 'bg-blue-50 text-gray-800 dark:bg-blue-900/30 dark:text-gray-200 text-[14px]' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-[14px]'}`}>
                     {content}
 
                     {/* Footer Actions: Copy & Delete */}
@@ -469,6 +469,9 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
   // If lengths are same, check if last message content changed
   if (prevProps.messages.length > 0 && nextProps.messages.length > 0) {
+    // If we are streaming, we always want to re-render to show updates
+    if (nextProps.isStreaming) return false;
+
     const prevLast = prevProps.messages[prevProps.messages.length - 1];
     const nextLast = nextProps.messages[nextProps.messages.length - 1];
 
