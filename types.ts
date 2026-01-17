@@ -49,7 +49,7 @@ export interface Message {
   tool_call_id?: string; // For tool messages
   interrupted?: boolean;
   interrupt_info?: InterruptInfo;
-  files?: string[];
+  files?: File[];
   attachments?: Attachment[];
   usage?: {
     prompt_tokens: number;
@@ -123,13 +123,18 @@ export interface ChatSession {
   updated_at: string;
 }
 
+export interface File {
+  file_name: string;
+  file_url: string;
+}
+
 export interface ChatRequest {
   model: string;
   stream_id?: string;
   messages: Array<{
     role: string;
     content: string | any[]; // Relaxed to support array of content parts
-    files?: string[]; // 用户上传的文档url列表（可选）
+    files?: File[]; // 用户上传的文档url列表（可选）
   }>;
   stream?: boolean;
   config?: {

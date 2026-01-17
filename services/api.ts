@@ -85,7 +85,7 @@ export const getChatMessages = async (chatId: string, offset: number, limit: num
                     // Normalize single tool_result object to array if present
                     tool_result: delta.tool_result ? [delta.tool_result] : undefined,
                     interrupt_info: delta.interrupt_info,
-                    files: Array.isArray(delta.files) ? delta.files : undefined,
+                    files: Array.isArray(delta.files) ? (delta.files as any[]) : undefined,
                     timestamp: innerMsg.created * 1000
                 };
             } catch (e) {

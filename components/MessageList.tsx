@@ -377,7 +377,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
                 // Combine Attachments (Local) and Files (Server)
                 const combinedAttachments: UnifiedAttachment[] = [];
-                
+
                 // 1. Local Attachments (Pre-upload/sending state or just sent)
                 if (msg.attachments) {
                     msg.attachments.forEach(att => combinedAttachments.push({
@@ -389,20 +389,17 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                 }
 
                 // 2. Server Files (History)
-                // Note: If we have attachments, we might have duplicates if we blindly add both.
-                // But usually 'attachments' is for local optimistic update, and 'files' is from server history.
-                // If message is from history, attachments is undefined, files is defined.
-                // If message is local, attachments is defined, files might be defined in API object but not in local Message object (unless we added it).
                 if (Array.isArray(msg.files)) {
-                    msg.files.forEach(url => {
+                    msg.files.forEach(f => {
+                        const url = f.file_url;
+                        const name = f.file_name;
                         // Check if this URL is already in attachments to avoid duplicates
                         if (!combinedAttachments.some(att => att.url === url)) {
-                             const name = url.split('/').pop() || 'file';
                              const ext = getExtension(name);
                              let type: 'image' | 'video' | 'file' = 'file';
                              if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) type = 'image';
                              else if (['mp4','webm','mov'].includes(ext)) type = 'video';
-                             
+
                              combinedAttachments.push({
                                  url,
                                  type,
@@ -429,7 +426,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
                 const cleanText = (text: string) => {
                   if (!text) return '';
-                  const marker = '\n\n【用户上传的素材库】:';
+                  const marker = "\n\n [User's attachment]：\n\n";
                   const index = text.indexOf(marker);
                   if (index !== -1) {
                     return text.substring(0, index);

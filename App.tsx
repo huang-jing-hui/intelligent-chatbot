@@ -206,7 +206,7 @@ const App: React.FC = () => {
 
       // Prepare messages for API (handle multimodal)
       const apiMessages = [ userMsg].map(m => {
-        const files: string[] = [];
+        const files: any[] = [];
         let content: any = m.content || '';
 
         if (m.attachments && m.attachments.length > 0) {
@@ -225,7 +225,10 @@ const App: React.FC = () => {
                  video_url: { url: att.url }
                });
              } else if (att.type === 'file') {
-                 files.push(att.url);
+                 files.push({
+                     file_name: att.name,
+                     file_url: att.url
+                 });
              }
           });
 
