@@ -1,9 +1,35 @@
 export interface Attachment {
   id: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'file';
   url: string; // Data URL or remote URL
   name: string;
+  extension?: string; // 文件扩展名
 }
+
+// 支持的文档类型
+export const vlm_handlers = [
+  "pdf",
+  "pptx",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "csv",
+];
+
+export const txt_handlers = [
+  "txt",
+  "md",
+  "html",
+  "java",
+  "py",
+  "ts",
+  "css",
+  "js",
+  "xml",
+  "json",
+  "tsx",
+];
 
 export type MessagePart =
   | { type: 'reasoning'; content: string }
@@ -23,6 +49,7 @@ export interface Message {
   tool_call_id?: string; // For tool messages
   interrupted?: boolean;
   interrupt_info?: InterruptInfo;
+  files?: string[];
   attachments?: Attachment[];
   usage?: {
     prompt_tokens: number;
@@ -99,10 +126,11 @@ export interface ChatSession {
 export interface ChatRequest {
   model: string;
   stream_id?: string;
-  messages: {
+  messages: Array<{
     role: string;
     content: string | any[]; // Relaxed to support array of content parts
-  }[];
+    files?: string[]; // 用户上传的文档url列表（可选）
+  }>;
   stream?: boolean;
   config?: {
     configurable?: {

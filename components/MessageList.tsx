@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Message, MessagePart, ToolCall, ToolResult, Attachment } from '../types';
 import { ReasoningBlock, ToolCallsBlock, ToolResultBlock, InterruptBlock } from './MessageBlocks';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { User, Bot, Terminal, X, Download, Copy, Check, Trash2 } from 'lucide-react';
+import { User, Bot, Terminal, X, Download, Copy, Check, Trash2, FileText, FileCode, FileSpreadsheet, File as FileIcon, FileImage, FileVideo } from 'lucide-react';
 
 interface Props {
   messages: Message[];
@@ -86,6 +86,49 @@ const isToolResultEmpty = (content: string, name?: string) => {
   }
   return false;
 };
+
+const getExtension = (filename: string): string => {
+    return filename.split('.').pop()?.toLowerCase() || '';
+};
+
+const getFileIcon = (filename: string) => {
+    const ext = getExtension(filename);
+    switch (ext) {
+        case 'pdf': return <FileText className="w-5 h-5 text-red-500" />;
+        case 'xls':
+        case 'xlsx':
+        case 'csv': return <FileSpreadsheet className="w-5 h-5 text-green-500" />;
+        case 'doc':
+        case 'docx': return <FileText className="w-5 h-5 text-blue-500" />;
+        case 'js':
+        case 'ts':
+        case 'tsx':
+        case 'jsx':
+        case 'py':
+        case 'java':
+        case 'html':
+        case 'css':
+        case 'json':
+        case 'xml': return <FileCode className="w-5 h-5 text-yellow-500" />;
+        case 'png':
+        case 'jpg':
+        case 'jpeg':
+        case 'gif':
+        case 'webp':
+        case 'svg': return <FileImage className="w-5 h-5 text-purple-500" />;
+        case 'mp4':
+        case 'webm':
+        case 'mov': return <FileVideo className="w-5 h-5 text-pink-500" />;
+        default: return <FileIcon className="w-5 h-5 text-gray-500" />;
+    }
+};
+
+interface UnifiedAttachment {
+    url: string;
+    type: 'image' | 'video' | 'file';
+    name: string;
+    extension?: string;
+}
 
 export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptResponse, isLoading, isStreaming, onDeleteMessage, onLoadMore, hasMore, isLoadingMore }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -273,7 +316,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                 );
 
                 // Helper to render media grid
-                const renderMediaGrid = (mediaItems: { url: string, type: 'image' | 'video', name?: string }[], keyPrefix: string) => {
+                const renderMediaGrid = (mediaItems: UnifiedAttachment[], keyPrefix: string) => {
                   if (!mediaItems || mediaItems.length === 0) return null;
 
                   const content = (
@@ -294,16 +337,95 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                     </div>
                   );
 
-                  // Wrap in bubble to match text style
-                  // We also attach delete button here if it's the only content
                   return wrapInTextBubble(content, keyPrefix, '', msg.id);
                 };
 
-                // 1. Attachments (Legacy/Local)
-                if (msg.attachments && msg.attachments.length > 0) {
-                  const mediaItems = msg.attachments.map(att => ({ url: att.url, type: att.type, name: att.name }));
-                  renderBlocks.push(renderMediaGrid(mediaItems, `att-${msgKey}`));
+                // Helper to render file list
+                const renderFileList = (files: UnifiedAttachment[], keyPrefix: string) => {
+                    if (!files || files.length === 0) return null;
+
+                    const content = (
+                        <div className="flex flex-col gap-2">
+                            {files.map((file, idx) => (
+                                <a
+                                    key={`${keyPrefix}-${idx}`}
+                                    href={file.url}
+                                    download={file.name}
+                                    className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group/file"
+                                >
+                                    <div className="shrink-0">
+                                        {getFileIcon(file.name)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium truncate text-gray-700 dark:text-gray-200">{file.name}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">{file.extension}</div>
+                                    </div>
+                                    <Download className="w-4 h-4 text-gray-400 group-hover/file:text-blue-500 transition-colors" />
+                                </a>
+                            ))}
+                        </div>
+                    );
+
+                    // We wrap it in a bubble container logic, but maybe we don't need the standard bubble bg?
+                    // Let's use naked div for file list to look like cards
+                    return (
+                        <div key={keyPrefix} className="w-full">
+                           {content}
+                        </div>
+                    );
+                };
+
+                // Combine Attachments (Local) and Files (Server)
+                const combinedAttachments: UnifiedAttachment[] = [];
+                
+                // 1. Local Attachments (Pre-upload/sending state or just sent)
+                if (msg.attachments) {
+                    msg.attachments.forEach(att => combinedAttachments.push({
+                        url: att.url,
+                        type: att.type,
+                        name: att.name,
+                        extension: att.extension || getExtension(att.name)
+                    }));
                 }
+
+                // 2. Server Files (History)
+                // Note: If we have attachments, we might have duplicates if we blindly add both.
+                // But usually 'attachments' is for local optimistic update, and 'files' is from server history.
+                // If message is from history, attachments is undefined, files is defined.
+                // If message is local, attachments is defined, files might be defined in API object but not in local Message object (unless we added it).
+                if (Array.isArray(msg.files)) {
+                    msg.files.forEach(url => {
+                        // Check if this URL is already in attachments to avoid duplicates
+                        if (!combinedAttachments.some(att => att.url === url)) {
+                             const name = url.split('/').pop() || 'file';
+                             const ext = getExtension(name);
+                             let type: 'image' | 'video' | 'file' = 'file';
+                             if (['jpg','jpeg','png','gif','webp','svg'].includes(ext)) type = 'image';
+                             else if (['mp4','webm','mov'].includes(ext)) type = 'video';
+                             
+                             combinedAttachments.push({
+                                 url,
+                                 type,
+                                 name,
+                                 extension: ext
+                             });
+                        }
+                    });
+                }
+
+                // Split into Visuals and Docs
+                const visuals = combinedAttachments.filter(a => a.type === 'image' || a.type === 'video');
+                const docs = combinedAttachments.filter(a => a.type === 'file');
+
+                // Render Visuals First
+                if (visuals.length > 0) {
+                     renderBlocks.push(renderMediaGrid(visuals, `vis-${msgKey}`));
+                }
+                // Render Docs Second
+                if (docs.length > 0) {
+                     renderBlocks.push(renderFileList(docs, `doc-${msgKey}`));
+                }
+
 
                 const cleanText = (text: string) => {
                   if (!text) return '';

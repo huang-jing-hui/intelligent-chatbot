@@ -85,6 +85,7 @@ export const getChatMessages = async (chatId: string, offset: number, limit: num
                     // Normalize single tool_result object to array if present
                     tool_result: delta.tool_result ? [delta.tool_result] : undefined,
                     interrupt_info: delta.interrupt_info,
+                    files: Array.isArray(delta.files) ? delta.files : undefined,
                     timestamp: innerMsg.created * 1000
                 };
             } catch (e) {
@@ -180,13 +181,15 @@ export const deleteChatSpecify = async (chatId: string, stream_id: string) => {
     }
 };
 
-export const uploadFile = async (url: string): Promise<string> => {
-    // 上传文件，传入base64 url，返回上传后文件url
+export const uploadFile = async (url: string,file_name:string,need_parse:boolean): Promise<string> => {
+    // 上传文件，传入base64 url 文件名 是否需要解析，返回上传后文件url
     const response = await fetch(`${API_BASE_URL}/v1/file/upload`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-            "file_base64": url
+            "file_base64": url,
+            "file_name": file_name,
+            "need_parse": need_parse,
         })
     });
     const data = await response.json();

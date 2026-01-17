@@ -206,10 +206,13 @@ const App: React.FC = () => {
 
       // Prepare messages for API (handle multimodal)
       const apiMessages = [ userMsg].map(m => {
+        const files: string[] = [];
+        let content: any = m.content || '';
+
         if (m.attachments && m.attachments.length > 0) {
           const contentParts: any[] = [];
-
-          // Add attachments first
+          
+          // Add attachments
           m.attachments.forEach(att => {
              if (att.type === 'image') {
                contentParts.push({
@@ -221,6 +224,8 @@ const App: React.FC = () => {
                  type: 'video_url',
                  video_url: { url: att.url }
                });
+             } else if (att.type === 'file') {
+                 files.push(att.url);
              }
           });
 
@@ -228,11 +233,22 @@ const App: React.FC = () => {
           if (m.content) {
             contentParts.push({ type: 'text', text: m.content });
           }
-
-          return { role: m.role, content: contentParts };
+          
+          // If we have visual media, use contentParts. If only files, we can keep content as string if we want,
+          // but if we have mixed content (text + files), text is in content.
+          // Wait, if we have files, content can still be string. 
+          // Only if we have image/video do we force content array?
+          // Actually, if contentParts has > 0 (images/videos/text), use it.
+          if (contentParts.length > 0) {
+              content = contentParts;
+          }
         }
 
-        return { role: m.role, content: m.content || '' };
+        const msgObj: any = { role: m.role, content: content };
+        if (files.length > 0) {
+            msgObj.files = files;
+        }
+        return msgObj;
       });
 
       const stream = streamChatCompletion({

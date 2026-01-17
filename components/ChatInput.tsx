@@ -1,8 +1,8 @@
 import { uploadFile } from '../services/api';
 import React, { useState, useRef, useCallback } from 'react';
-import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, Image as ImageIcon } from 'lucide-react';
+import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, FileText, Image as ImageIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { Attachment } from '../types';
+import { Attachment, vlm_handlers, txt_handlers } from '../types';
 
 interface PendingAttachment extends Attachment {
   isLoading: boolean;
@@ -21,14 +21,35 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const getFileType = (file: File): 'image' | 'video' | 'file' => {
+      if (file.type.startsWith('image/')) return 'image';
+      if (file.type.startsWith('video/')) return 'video';
+      return 'file';
+  };
+
+  const getExtension = (filename: string): string => {
+      return filename.split('.').pop()?.toLowerCase() || '';
+  };
+
+  const isSupportedFile = (file: File) => {
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) return true;
+      const ext = getExtension(file.name);
+      return vlm_handlers.includes(ext) || txt_handlers.includes(ext);
+  };
+
   const processFiles = async (files: File[]) => {
-    const newPendingAttachments: PendingAttachment[] = files.map(file => ({
-      id: uuidv4(),
-      type: file.type.startsWith('image/') ? 'image' : 'video',
-      url: '', // Will be filled later
-      name: file.name,
-      isLoading: true
-    }));
+    const newPendingAttachments: PendingAttachment[] = files.map(file => {
+      const type = getFileType(file);
+      const ext = getExtension(file.name);
+      return {
+        id: uuidv4(),
+        type,
+        url: '', // Will be filled later
+        name: file.name,
+        extension: ext,
+        isLoading: true
+      };
+    });
 
     // Add placeholders immediately
     setAttachments(prev => [...prev, ...newPendingAttachments]);
@@ -38,8 +59,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
         const att = newPendingAttachments[index];
         try {
             const base64Data = await readFileAsDataURL(file);
+            const ext = getExtension(file.name);
+            const needParse = vlm_handlers.includes(ext);
+
             // Upload to server and get real URL
-            const serverUrl = await uploadFile(base64Data);
+            const serverUrl = await uploadFile(base64Data, file.name, needParse);
 
             setAttachments(prev => prev.map(p =>
                 p.id === att.id ? { ...p, url: serverUrl, isLoading: false } : p
@@ -64,7 +88,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      const validFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+      const validFiles = files.filter(isSupportedFile);
       if (validFiles.length > 0) {
           processFiles(validFiles);
       }
@@ -78,7 +102,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
     for (const item of items) {
       if (item.kind === 'file') {
         const file = item.getAsFile();
-        if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+        if (file && isSupportedFile(file)) {
           files.push(file);
         }
       }
@@ -113,6 +137,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
     }
   };
 
+  const renderPreviewIcon = (att: PendingAttachment) => {
+      if (att.isLoading) return <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />;
+      if (att.type === 'image') return <img src={att.url} alt={att.name} className="w-full h-full object-cover" />;
+      if (att.type === 'video') return <FileVideo className="w-8 h-8 text-gray-400" />;
+      return <FileText className="w-8 h-8 text-gray-400" />;
+  };
+
   return (
     <>
       <div
@@ -133,13 +164,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                      className="w-full h-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center cursor-pointer relative"
                      onClick={() => !att.isLoading && setPreviewAttachment(att)}
                    >
-                     {att.isLoading ? (
-                       <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                     ) : att.type === 'image' ? (
-                       <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
-                     ) : (
-                       <FileVideo className="w-8 h-8 text-gray-400" />
-                     )}
+                     {renderPreviewIcon(att)}
 
                      {/* Hover Overlay for Preview icon */}
                      {!att.isLoading && (
@@ -148,6 +173,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                         </div>
                      )}
                    </div>
+                   
+                   {att.extension && att.type === 'file' && (
+                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 truncate text-center">
+                           {att.extension.toUpperCase()}
+                       </div>
+                   )}
 
                    <button
                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
@@ -165,7 +196,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
              onChange={(e) => setInputValue(e.target.value)}
              onPaste={handlePaste}
              onKeyDown={handleKeyDown}
-             placeholder={isLoading ? "Generating response..." : "Send a message... (Paste images/videos supported)"}
+             placeholder={isLoading ? "Generating response..." : "Send a message... (Paste images/videos/files supported)"}
              disabled={isLoading}
              className={`flex-1 w-full bg-transparent border-0 focus:ring-0 resize-none py-2 text-sm ${
                  isExpanded ? 'h-full' : 'max-h-32 min-h-[44px]'
@@ -178,7 +209,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                   <button
                       onClick={() => fileInputRef.current?.click()}
                       className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"
-                      title="Upload image or video"
+                      title="Upload image, video or file"
                       disabled={isLoading}
                   >
                       <Paperclip className="w-5 h-5" />
@@ -188,7 +219,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                       ref={fileInputRef}
                       onChange={handleFileSelect}
                       className="hidden"
-                      accept="image/*,video/*"
+                      accept="*"
                       multiple
                   />
                   <button
@@ -228,8 +259,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
               <div className="relative bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800 w-auto h-auto flex justify-center items-center">
                  {previewAttachment.type === 'image' ? (
                      <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-[80vh] object-contain" />
-                 ) : (
+                 ) : previewAttachment.type === 'video' ? (
                      <video src={previewAttachment.url} controls className="max-w-full max-h-[80vh]" />
+                 ) : (
+                     <div className="flex flex-col items-center justify-center p-20 bg-gray-900 text-white">
+                         <FileText className="w-24 h-24 mb-4" />
+                         <span className="text-xl">{previewAttachment.name}</span>
+                     </div>
                  )}
               </div>
 
