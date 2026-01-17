@@ -22,8 +22,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getFileType = (file: File): 'image' | 'video' | 'file' => {
-      if (file.type.startsWith('image/')) return 'image';
-      if (file.type.startsWith('video/')) return 'video';
+      const ext = getExtension(file.name);
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
+      if (['mp4', 'webm', 'mov', 'm4v'].includes(ext)) return 'video';
       return 'file';
   };
 
@@ -32,9 +33,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
   };
 
   const isSupportedFile = (file: File) => {
-      if (file.type.startsWith('image/') || file.type.startsWith('video/')) return true;
       const ext = getExtension(file.name);
-      return vlm_handlers.includes(ext) || txt_handlers.includes(ext);
+      return vlm_handlers.includes(ext) || 
+             txt_handlers.includes(ext) || 
+             ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov', 'm4v'].includes(ext);
   };
 
   const processFiles = async (files: File[]) => {
@@ -60,7 +62,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
         try {
             const base64Data = await readFileAsDataURL(file);
             const ext = getExtension(file.name);
-            const needParse = vlm_handlers.includes(ext);
+            const needParse = vlm_handlers.includes(ext) || txt_handlers.includes(ext);
 
             // Upload to server and get real URL
             const serverUrl = await uploadFile(base64Data, file.name, needParse);
@@ -108,6 +110,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
       }
     }
     if (files.length > 0) {
+      e.preventDefault();
       processFiles(files);
     }
   };
@@ -157,11 +160,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
 
            {/* Attachment List */}
            {attachments.length > 0 && (
-             <div className="flex gap-3 mb-3 overflow-x-auto pb-2 shrink-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+             <div className="flex gap-4 mb-3 overflow-x-auto pb-2 shrink-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                {attachments.map(att => (
-                 <div key={att.id} className="relative group shrink-0 w-20 h-20">
+                 <div key={att.id} className="relative group shrink-0 w-24 flex flex-col items-center">
                    <div
-                     className="w-full h-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center cursor-pointer relative"
+                     className="w-24 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center cursor-pointer relative"
                      onClick={() => !att.isLoading && setPreviewAttachment(att)}
                    >
                      {renderPreviewIcon(att)}
@@ -173,12 +176,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
                         </div>
                      )}
                    </div>
-                   
-                   {att.extension && att.type === 'file' && (
-                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 truncate text-center">
-                           {att.extension.toUpperCase()}
-                       </div>
-                   )}
+
+                   <div className="mt-1 w-full flex flex-col items-center px-1">
+                       <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center font-medium" title={att.name}>
+                           {att.name}
+                       </span>
+                       {att.extension && (
+                           <span className="text-[9px] px-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded uppercase font-bold leading-tight">
+                               {att.extension}
+                           </span>
+                       )}
+                   </div>
 
                    <button
                      onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
