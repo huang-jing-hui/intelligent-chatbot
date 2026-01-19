@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MessageSquare, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings } from 'lucide-react';
 import { ChatSession } from '../types';
 
 interface Props {
@@ -21,6 +21,23 @@ export const Sidebar: React.FC<Props> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiUrl, setApiUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+
+  useEffect(() => {
+    const savedApiUrl = localStorage.getItem('apiUrl');
+    const savedApiKey = localStorage.getItem('apiKey');
+    if (savedApiUrl) setApiUrl(savedApiUrl);
+    if (savedApiKey) setApiKey(savedApiKey);
+  }, []);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem('apiUrl', apiUrl);
+    localStorage.setItem('apiKey', apiKey);
+    setShowSettings(false);
+    window.location.reload();
+  };
 
   const handleStartEdit = (e: React.MouseEvent, session: ChatSession) => {
     e.stopPropagation();
@@ -150,8 +167,74 @@ export const Sidebar: React.FC<Props> = ({
                <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">Hjh</p>
                <p className="text-[11px] text-gray-500 truncate">jump</p>
             </div>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-blue-500 transition-all"
+              title="Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
          </div>
       </div>
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  API URL
+                </label>
+                <input
+                  type="text"
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  placeholder="http://localhost:8000"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  API Key
+                </label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter your API key"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-800">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSettings}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,14 +1,21 @@
 import {Message, ChatSession, ChatRequest, StreamChunk} from '../types';
 
-const API_BASE_URL = 'http://localhost:8000';
+const getApiBaseUrl = () => localStorage.getItem('apiUrl') || 'http://localhost:8000';
+const getApiKey = () => localStorage.getItem('apiKey') || '';
 
 // Helper to handle streaming responses
 export async function* streamChatCompletion(request: ChatRequest): AsyncGenerator<StreamChunk, void, unknown> {
-    const response = await fetch(`${API_BASE_URL}/v1/chat/completions`, {
+    const apiKey = getApiKey();
+    const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+        'Content-Type': 'application/json',
+    };
+    if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${getApiBaseUrl()}/v1/chat/completions`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
     });
 
@@ -52,9 +59,17 @@ export async function* streamChatCompletion(request: ChatRequest): AsyncGenerato
 
 // REST endpoints
 export const getChatMessages = async (chatId: string, offset: number, limit: number): Promise<Message[]> => {
-    const response = await fetch(`${API_BASE_URL}/v1/chat/get_message`, {
+    const apiKey = getApiKey();
+    const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+        'Content-Type': 'application/json',
+    };
+    if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${getApiBaseUrl()}/v1/chat/get_message`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         body: JSON.stringify({
             "config":
                 {
@@ -100,9 +115,17 @@ export const getChatMessages = async (chatId: string, offset: number, limit: num
 
 export const getChatTitles = async (): Promise<ChatSession[]> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/v1/chat/get_message_title`, {
+        const apiKey = getApiKey();
+        const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+            'Content-Type': 'application/json',
+        };
+        if (apiKey) {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const response = await fetch(`${getApiBaseUrl()}/v1/chat/get_message_title`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers,
             body: JSON.stringify({})
         });
         const data = await response.json();
@@ -123,9 +146,17 @@ export const getChatTitles = async (): Promise<ChatSession[]> => {
 
 export const updateChatTitle = async (chatId: string, title: string): Promise<boolean> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/v1/chat/update_title`, {
+        const apiKey = getApiKey();
+        const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+            'Content-Type': 'application/json',
+        };
+        if (apiKey) {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const response = await fetch(`${getApiBaseUrl()}/v1/chat/update_title`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers,
             body: JSON.stringify({
                 "config":
                     {
@@ -145,9 +176,17 @@ export const updateChatTitle = async (chatId: string, title: string): Promise<bo
 };
 
 export const deleteChat = async (chatId: string) => {
-    return fetch(`${API_BASE_URL}/v1/chat/delete`, {
+    const apiKey = getApiKey();
+    const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+        'Content-Type': 'application/json',
+    };
+    if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    return fetch(`${getApiBaseUrl()}/v1/chat/delete`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         body: JSON.stringify({
             "config":
                 {
@@ -161,9 +200,17 @@ export const deleteChat = async (chatId: string) => {
 
 export const deleteChatSpecify = async (chatId: string, stream_id: string) => {
     console.log('deleteChatSpecify：',  stream_id);
-    const response = await fetch(`${API_BASE_URL}/v1/chat/delete/specify`, {
+    const apiKey = getApiKey();
+    const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+        'Content-Type': 'application/json',
+    };
+    if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${getApiBaseUrl()}/v1/chat/delete/specify`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         body: JSON.stringify({
             "config":
                 {
@@ -184,9 +231,17 @@ export const deleteChatSpecify = async (chatId: string, stream_id: string) => {
 
 export const uploadFile = async (url: string,file_name:string,need_parse:boolean): Promise<string> => {
     // 上传文件，传入base64 url 文件名 是否需要解析，返回上传后文件url
-    const response = await fetch(`${API_BASE_URL}/v1/file/upload`, {
+    const apiKey = getApiKey();
+    const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+        'Content-Type': 'application/json',
+    };
+    if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    const response = await fetch(`${getApiBaseUrl()}/v1/file/upload`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         body: JSON.stringify({
             "file_base64": url,
             "file_name": file_name,
