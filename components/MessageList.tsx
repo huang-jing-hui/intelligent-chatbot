@@ -136,7 +136,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
   const isAutoScrolling = useRef(true);
   const isInitialLoad = useRef(true);
   const previousScrollHeight = useRef(0);
-  const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video', name?: string } | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video' | 'file', name?: string } | null>(null);
   const [expandedTokens, setExpandedTokens] = useState<Set<number>>(new Set());
 
   const toggleTokenExpansion = (groupIndex: number) => {
