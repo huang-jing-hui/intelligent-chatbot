@@ -135,6 +135,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (isExpanded) {
+        return;
+      }
       e.preventDefault();
       handleSend();
     }
@@ -206,7 +209,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
              onKeyDown={handleKeyDown}
              placeholder={isLoading ? "Generating response..." : "Send a message... (Paste images/videos/files supported)"}
              disabled={isLoading}
-             className={`flex-1 w-full bg-transparent border-0 focus:ring-0 resize-none py-2 text-sm ${
+             className={`flex-1 w-full bg-transparent border-0 focus:ring-0 outline-none resize-none py-2 text-sm ${
                  isExpanded ? 'h-full' : 'max-h-32 min-h-[44px]'
              }`}
            />
