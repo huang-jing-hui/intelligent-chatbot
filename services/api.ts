@@ -86,7 +86,8 @@ export const getChatMessages = async (chatId: string, offset: number, limit: num
                     tool_result: delta.tool_result ? [delta.tool_result] : undefined,
                     interrupt_info: delta.interrupt_info,
                     files: Array.isArray(delta.files) ? (delta.files as any[]) : undefined,
-                    timestamp: innerMsg.created * 1000
+                    timestamp: innerMsg.created * 1000,
+                    usage: innerMsg.usage,
                 };
             } catch (e) {
                 console.warn("Failed to parse message item", item, e);

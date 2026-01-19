@@ -137,6 +137,19 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
   const isInitialLoad = useRef(true);
   const previousScrollHeight = useRef(0);
   const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video', name?: string } | null>(null);
+  const [expandedTokens, setExpandedTokens] = useState<Set<number>>(new Set());
+
+  const toggleTokenExpansion = (groupIndex: number) => {
+    setExpandedTokens(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupIndex)) {
+        newSet.delete(groupIndex);
+      } else {
+        newSet.add(groupIndex);
+      }
+      return newSet;
+    });
+  };
 
   // Compute completed tool call IDs to pass to ToolCallsBlock
   const completedToolIds = useMemo(() => {
@@ -189,6 +202,30 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     });
     return groups;
   }, [messages]);
+
+  // Calculate token usage for each group
+  const groupedTokenStats = useMemo(() => {
+    return groupedMessages.map(group => {
+      const stats = {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0
+      };
+
+      const messageIds = new Set<string>();
+
+      group.messages.forEach(msg => {
+        if (msg.id && !messageIds.has(msg.id) && msg.usage) {
+          messageIds.add(msg.id);
+          stats.prompt_tokens += msg.usage.prompt_tokens || 0;
+          stats.completion_tokens += msg.usage.completion_tokens || 0;
+          stats.total_tokens += msg.usage.total_tokens || 0;
+        }
+      });
+
+      return stats;
+    });
+  }, [groupedMessages]);
 
 
   // Handle automatic scrolling and scroll restoration
@@ -553,6 +590,51 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
                 return renderBlocks;
               })}
+
+              {!isUser && groupedTokenStats[groupIndex].total_tokens > 0 && (
+                <div
+                  onClick={() => toggleTokenExpansion(groupIndex)}
+                  className={`self-start mt-2 px-3 py-2 rounded-lg text-xs border cursor-pointer transition-all ${
+                    isUser 
+                      ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50' 
+                      : 'bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {!expandedTokens.has(groupIndex) ? (
+                    <div className="flex items-center gap-2">
+                      <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        Total Usage: {groupedTokenStats[groupIndex].total_tokens} tokens
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Token Usage</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Input:</span>
+                          <span className="ml-1 font-mono text-gray-700 dark:text-gray-300">
+                            {groupedTokenStats[groupIndex].prompt_tokens} tokens
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Output:</span>
+                          <span className="ml-1 font-mono text-gray-700 dark:text-gray-300">
+                            {groupedTokenStats[groupIndex].completion_tokens} tokens
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
