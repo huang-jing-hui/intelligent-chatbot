@@ -1,7 +1,7 @@
 import {Message, ChatSession, ChatRequest, StreamChunk} from '../types';
 
-const getApiBaseUrl = () => localStorage.getItem('apiUrl') || 'http://localhost:8000';
-const getApiKey = () => localStorage.getItem('apiKey') || '';
+const getApiBaseUrl = () => localStorage.getItem('apiUrl') || (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_BASE || process.env.AI_CHATBOT_BASE || 'http://localhost:8000';
+const getApiKey = () => localStorage.getItem('apiKey') || (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_API_KEY || process.env.AI_CHATBOT_API_KEY || '';
 
 // Helper to handle streaming responses
 export async function* streamChatCompletion(request: ChatRequest): AsyncGenerator<StreamChunk, void, unknown> {
