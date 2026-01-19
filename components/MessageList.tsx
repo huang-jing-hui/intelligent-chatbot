@@ -215,7 +215,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
       const messageIds = new Set<string>();
 
       group.messages.forEach(msg => {
-        if (msg.id && !messageIds.has(msg.id) && msg.usage) {
+        if (msg.id && msg.usage) {
           messageIds.add(msg.id);
           stats.prompt_tokens += msg.usage.prompt_tokens || 0;
           stats.completion_tokens += msg.usage.completion_tokens || 0;

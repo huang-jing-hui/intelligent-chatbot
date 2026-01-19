@@ -305,6 +305,15 @@ const App: React.FC = () => {
             accumulatedMessage.message_id = chunk.message_id;
         }
 
+        if (chunk.usage) {
+          if (!accumulatedMessage.usage) {
+            accumulatedMessage.usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+          }
+          accumulatedMessage.usage.prompt_tokens += chunk.usage.prompt_tokens;
+          accumulatedMessage.usage.completion_tokens += chunk.usage.completion_tokens;
+          accumulatedMessage.usage.total_tokens += chunk.usage.total_tokens;
+        }
+
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
