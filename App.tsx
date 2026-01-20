@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const lastStreamedIdRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -185,8 +186,23 @@ const App: React.FC = () => {
     });
   };
 
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[], interrupt: boolean = false, streamId?: string) => {
     if ((!content.trim() && attachments.length === 0) || isLoading) return;
+
+    // Reset abort controller
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setIsLoading(true);
 
@@ -276,7 +292,7 @@ const App: React.FC = () => {
         messages: apiMessages,
         stream: true,
         config: { configurable: { thread_id: sessionId } }
-      });
+      }, controller.signal);
 
       let currentToolCalls: { [index: number]: ToolCall } = {};
 
@@ -439,10 +455,16 @@ const App: React.FC = () => {
         loadSessions(false);
       }
 
-    } catch (error) {
-      console.error('Streaming error', error);
-      updateLastMessage(msg => ({ ...msg, content: msg.content + "\n\n[Error generating response]" }));
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+          console.log('Generation stopped by user');
+          updateLastMessage(msg => ({ ...msg, content: msg.content + "\n\n[Stopped by user]" }));
+      } else {
+          console.error('Streaming error', error);
+          updateLastMessage(msg => ({ ...msg, content: msg.content + "\n\n[Error generating response]" }));
+      }
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   };
@@ -511,6 +533,7 @@ const App: React.FC = () => {
         <ChatInput
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
+          onStop={handleStop}
         />
       </div>
       

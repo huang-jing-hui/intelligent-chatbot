@@ -29,6 +29,8 @@ export const txt_handlers = [
   "xml",
   "json",
   "tsx",
+  "yml",
+  "yaml",
 ];
 
 export type MessagePart =

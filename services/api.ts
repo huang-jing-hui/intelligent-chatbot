@@ -4,7 +4,7 @@ const getApiBaseUrl = () => localStorage.getItem('apiUrl') || (window as any).AI
 const getApiKey = () => localStorage.getItem('apiKey') || (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_API_KEY || process.env.AI_CHATBOT_API_KEY || '';
 
 // Helper to handle streaming responses
-export async function* streamChatCompletion(request: ChatRequest): AsyncGenerator<StreamChunk, void, unknown> {
+export async function* streamChatCompletion(request: ChatRequest, signal?: AbortSignal): AsyncGenerator<StreamChunk, void, unknown> {
     const apiKey = getApiKey();
     const headers: { 'Content-Type': string; 'Authorization'?: string } = {
         'Content-Type': 'application/json',
@@ -17,6 +17,7 @@ export async function* streamChatCompletion(request: ChatRequest): AsyncGenerato
         method: 'POST',
         headers,
         body: JSON.stringify(request),
+        signal,
     });
 
     if (!response.ok) {

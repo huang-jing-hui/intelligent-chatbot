@@ -11,9 +11,10 @@ interface PendingAttachment extends Attachment {
 interface ChatInputProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
   isLoading: boolean;
+  onStop: () => void;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, onStop }) => {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
@@ -243,14 +244,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
               </div>
 
               <div className="flex items-center gap-2">
-                  <button
-                      onClick={handleSend}
-                      disabled={(!inputValue.trim() && attachments.length === 0) || isLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm font-medium text-sm"
-                  >
-                      <Send className="w-4 h-4" />
-                      <span>Send</span>
-                  </button>
+                  {isLoading ? (
+                    <button
+                        onClick={onStop}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm font-medium text-sm"
+                    >
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Stop</span>
+                    </button>
+                  ) : (
+                    <button
+                        onClick={handleSend}
+                        disabled={(!inputValue.trim() && attachments.length === 0)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm font-medium text-sm"
+                    >
+                        <Send className="w-4 h-4" />
+                        <span>Send</span>
+                    </button>
+                  )}
               </div>
            </div>
         </div>
