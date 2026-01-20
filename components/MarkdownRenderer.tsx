@@ -118,8 +118,11 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
             const language = match ? match[1] : '';
             const value = String(children).replace(/\n$/, '');
 
-            if (match) {
-              return <CodeBlock language={language} value={value} />;
+            // 如果有语言匹配，或者是多行文本（代表这是一个代码块块，而不是行内代码）
+            const isCodeBlock = match || (className && className.includes('language-')) || value.includes('\n');
+
+            if (isCodeBlock) {
+              return <CodeBlock language={language || 'text'} value={value} />;
             }
 
             return (
