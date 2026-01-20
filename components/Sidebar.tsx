@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings } from 'lucide-react';
 import { ChatSession } from '../types';
+import { Modal } from './Modal';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Props {
   sessions: ChatSession[];
@@ -25,6 +26,14 @@ export const Sidebar: React.FC<Props> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [apiUrl, setApiUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
+
+  // Confirmation States
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const [renameConfirmOpen, setRenameConfirmOpen] = useState(false);
+  const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
+  const [renameTargetTitle, setRenameTargetTitle] = useState('');
 
   useEffect(() => {
     const savedApiUrl = localStorage.getItem('apiUrl');
@@ -52,20 +61,34 @@ export const Sidebar: React.FC<Props> = ({
     setEditValue('');
   };
 
-  const handleSaveEdit = async (e: React.MouseEvent, id: string) => {
+  const handleSaveEditTrigger = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!editValue.trim()) return;
 
-    if (window.confirm(`你确定要把这个聊天改名为 "${editValue}"?`)) {
-      await onRenameChat(id, editValue);
+    // Open confirmation dialog
+    setRenameTargetId(id);
+    setRenameTargetTitle(editValue);
+    setRenameConfirmOpen(true);
+  };
+
+  const confirmRename = async () => {
+    if (renameTargetId && renameTargetTitle) {
+      await onRenameChat(renameTargetId, renameTargetTitle);
       setEditingId(null);
+      setRenameConfirmOpen(false);
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+  const handleDeleteTrigger = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (window.confirm('您确定要删除此聊天记录吗？此操作无法撤消。')) {
-      onDeleteChat(id);
+    setDeleteTargetId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTargetId) {
+      onDeleteChat(deleteTargetId);
+      setDeleteConfirmOpen(false);
     }
   };
 
@@ -105,7 +128,7 @@ export const Sidebar: React.FC<Props> = ({
                   onChange={(e) => setEditValue(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveEdit(e as any, session.id);
+                    if (e.key === 'Enter') handleSaveEditTrigger(e as any, session.id);
                     if (e.key === 'Escape') handleCancelEdit(e as any);
                   }}
                 />
@@ -122,7 +145,7 @@ export const Sidebar: React.FC<Props> = ({
               {editingId === session.id ? (
                 <>
                   <button
-                    onClick={(e) => handleSaveEdit(e, session.id)}
+                    onClick={(e) => handleSaveEditTrigger(e, session.id)}
                     className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded text-green-600 transition-all"
                   >
                     <Check className="w-3.5 h-3.5" />
@@ -143,7 +166,7 @@ export const Sidebar: React.FC<Props> = ({
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={(e) => handleDeleteClick(e, session.id)}
+                    onClick={(e) => handleDeleteTrigger(e, session.id)}
                     className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-gray-400 hover:text-red-500 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -178,65 +201,77 @@ export const Sidebar: React.FC<Props> = ({
          </div>
       </div>
 
-      {showSettings && createPortal(
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  API URL
-                </label>
-                <input
-                  type="text"
-                  value={apiUrl}
-                  onChange={(e) => setApiUrl(e.target.value)}
-                  placeholder="http://localhost:8000"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  API Key
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your API key"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-800">
-              <button
-                onClick={() => setShowSettings(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveSettings}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-              >
-                Save
-              </button>
-            </div>
+      {/* Settings Modal */}
+      <Modal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Settings"
+        footer={
+          <>
+            <button
+              onClick={() => setShowSettings(false)}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveSettings}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Save
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              API URL
+            </label>
+            <input
+              type="text"
+              value={apiUrl}
+              onChange={(e) => setApiUrl(e.target.value)}
+              placeholder="http://localhost:8000"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
           </div>
-        </div>,
-        document.body
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              API Key
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API key"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="删除聊天"
+        message="你确定要删掉这个聊天吗？这一行为无法撤销。"
+        confirmText="Delete"
+        isDestructive={true}
+      />
+
+      {/* Rename Confirmation */}
+      <ConfirmDialog
+        isOpen={renameConfirmOpen}
+        onClose={() => setRenameConfirmOpen(false)}
+        onConfirm={confirmRename}
+        title="重新命名聊天"
+        message={`你确定要把这个聊天改名为 "${renameTargetTitle}"?`}
+        confirmText="Rename"
+      />
     </div>
   );
 };

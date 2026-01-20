@@ -6,6 +6,7 @@ import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updat
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
+import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -15,6 +16,20 @@ const App: React.FC = () => {
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const lastStreamedIdRef = useRef<string | null>(null);
+
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    const id = uuidv4();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   // Pagination State
   const [offset, setOffset] = useState(0);
@@ -123,15 +138,16 @@ const App: React.FC = () => {
     try {
       const result = await deleteChatSpecify(currentSessionId, msgUniqueId);
       if (result) {
-        alert(result)
+        showToast(result, 'error');
       }else {
         // Update UI: Remove all messages with this grouping ID
         setMessages(prev => prev.filter(m => m.id !== msgUniqueId));
+        showToast('Message deleted', 'success');
       }
 
     } catch (error) {
       console.error("Failed to delete message", error);
-      alert("Failed to delete message");
+      showToast("Failed to delete message", 'error');
     }
   };
 
@@ -141,7 +157,7 @@ const App: React.FC = () => {
       if (success) {
         await loadSessions(false);
       } else {
-        alert("Failed to update chat title");
+        showToast("Failed to update chat title", 'error');
       }
     } catch (error) {
       console.error("Failed to rename chat", error);
@@ -497,6 +513,8 @@ const App: React.FC = () => {
           isLoading={isLoading}
         />
       </div>
+      
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 };
