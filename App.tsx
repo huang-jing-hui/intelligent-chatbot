@@ -59,7 +59,7 @@ const App: React.FC = () => {
 
   // Initialize
   useEffect(() => {
-    loadSessions(true);
+    loadSessions(false);
   }, []);
 
   // Load chat messages when session changes
