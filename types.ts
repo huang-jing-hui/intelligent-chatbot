@@ -1,5 +1,5 @@
 export interface Attachment {
-  id: string;
+  id?: string;
   type: 'image' | 'video' | 'file';
   url: string; // Data URL or remote URL
   name: string;

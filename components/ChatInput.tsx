@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Attachment, vlm_handlers, txt_handlers } from '../types';
 
 interface PendingAttachment extends Attachment {
+  id: string; // Explicitly require id for pending attachments
   isLoading: boolean;
 }
 

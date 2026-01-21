@@ -299,7 +299,7 @@ const App: React.FC = () => {
       // Optimization: Local buffer to reduce React state updates
       let accumulatedMessage = { ...initialAssistantMsg };
       let lastUpdateTime = 0;
-      const MIN_UPDATE_INTERVAL = 100; // Increased from 50ms to 100ms
+      const MIN_UPDATE_INTERVAL = 30; // Optimized for 30fps with memoized components
       let rafId: number | null = null;
       let pendingUpdate = false;
 
