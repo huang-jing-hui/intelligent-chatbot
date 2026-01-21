@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Menu } from 'lucide-react';
-import { Message, ChatSession, ToolCall, Attachment, ToolResult } from './types';
+import { Message, ChatSession, ToolCall, Attachment, ToolResult, AVAILABLE_MODELS, DEFAULT_MODEL } from './types';
 import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle, deleteChatSpecify } from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
@@ -19,6 +19,26 @@ const App: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Model Selection State
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
+  const [hasVisualMedia, setHasVisualMedia] = useState(false);
+
+  // Auto-switch to VLM if visual media is present and current model is not VLM
+  const handleVisualMediaChange = (hasVisual: boolean) => {
+    setHasVisualMedia(hasVisual);
+    if (hasVisual) {
+      const currentModelConfig = AVAILABLE_MODELS.find(m => m.id === selectedModel);
+      if (!currentModelConfig?.isVlm) {
+        // Switch to the first available VLM model
+        const defaultVlm = AVAILABLE_MODELS.find(m => m.isVlm);
+        if (defaultVlm) {
+          setSelectedModel(defaultVlm.id);
+          showToast(`Switched to ${defaultVlm.name} for image support`, 'info');
+        }
+      }
+    }
+  };
 
   const showToast = (message: string, type: ToastType = 'info') => {
     const id = uuidv4();
@@ -269,11 +289,6 @@ const App: React.FC = () => {
             contentParts.push({ type: 'text', text: m.content });
           }
           
-          // If we have visual media, use contentParts. If only files, we can keep content as string if we want,
-          // but if we have mixed content (text + files), text is in content.
-          // Wait, if we have files, content can still be string. 
-          // Only if we have image/video do we force content array?
-          // Actually, if contentParts has > 0 (images/videos/text), use it.
           if (contentParts.length > 0) {
               content = contentParts;
           }
@@ -287,7 +302,7 @@ const App: React.FC = () => {
       });
 
       const stream = streamChatCompletion({
-        model: 'deepseek-reasoner',
+        model: selectedModel, // Use the selected model
         stream_id: currentStreamId,
         messages: apiMessages,
         stream: true,
@@ -474,6 +489,11 @@ const App: React.FC = () => {
     handleSendMessage(response, [], true, streamId);
   };
 
+  // Filter models based on visual media availability
+  const availableModels = hasVisualMedia
+    ? AVAILABLE_MODELS.filter(m => m.isVlm)
+    : AVAILABLE_MODELS;
+
   return (
     <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
       {/* Mobile Sidebar Overlay */}
@@ -500,21 +520,23 @@ const App: React.FC = () => {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        <header className="flex items-center px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black/50 backdrop-blur-md sticky top-0 z-10">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 -ml-2 mr-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex flex-col">
-            <h1 className="font-semibold text-xs lg:text-sm">
-              {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
-            </h1>
-            <span className="text-[10px] text-green-500 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-              Online
-            </span>
+        <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black/50 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden shrink-0"
+            >
+                <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col min-w-0">
+                <h1 className="font-semibold text-xs lg:text-sm truncate">
+                {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
+                </h1>
+                <span className="text-[10px] text-green-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                Online
+                </span>
+            </div>
           </div>
         </header>
 
@@ -534,6 +556,10 @@ const App: React.FC = () => {
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
           onStop={handleStop}
+          onVisualMediaChange={handleVisualMediaChange}
+          availableModels={availableModels}
+          selectedModel={selectedModel}
+          onModelSelect={setSelectedModel}
         />
       </div>
       

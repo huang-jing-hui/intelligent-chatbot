@@ -33,6 +33,23 @@ export const txt_handlers = [
   "yaml",
 ];
 
+export interface Model {
+  id: string;
+  name: string;
+  isVlm: boolean;
+}
+
+export const AVAILABLE_MODELS: Model[] = [
+  { id: 'kimi-k2-250905', name: 'kimi-k2-250905', isVlm: false },
+  { id: 'kimi-k2-thinking-251104', name: 'kimi-k2-thinking-251104', isVlm: false },
+  { id: 'deepseek-v3-2-251201', name: 'deepseek-v3-2-251201', isVlm: false },
+  { id: 'doubao-seed-1-8-251228', name: 'doubao-seed-1-8-251228', isVlm: true },
+  { id: 'doubao-seed-code-preview-251028', name: 'doubao-seed-code-preview-251028', isVlm: true },
+  { id: 'glm-4-7-251222', name: 'glm-4-7-251222', isVlm: false },
+];
+
+export const DEFAULT_MODEL = 'deepseek-v3-2-251201';
+
 export type MessagePart =
   | { type: 'reasoning'; content: string }
   | { type: 'tool_calls'; tool_calls: ToolCall[] }

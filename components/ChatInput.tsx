@@ -1,8 +1,8 @@
 import { uploadFile } from '../services/api';
-import React, { useState, useRef, useCallback } from 'react';
-import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, FileText, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, FileText, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { Attachment, vlm_handlers, txt_handlers } from '../types';
+import { Attachment, vlm_handlers, txt_handlers, Model } from '../types';
 
 interface PendingAttachment extends Attachment {
   id: string; // Explicitly require id for pending attachments
@@ -13,15 +13,33 @@ interface ChatInputProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
   isLoading: boolean;
   onStop: () => void;
+  onVisualMediaChange: (hasVisual: boolean) => void;
+  availableModels: Model[];
+  selectedModel: string;
+  onModelSelect: (modelId: string) => void;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, onStop }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ 
+  onSendMessage, 
+  isLoading, 
+  onStop, 
+  onVisualMediaChange,
+  availableModels,
+  selectedModel,
+  onModelSelect
+}) => {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<PendingAttachment | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Notify parent about visual media presence
+  useEffect(() => {
+    const hasVisual = attachments.some(a => a.type === 'image' || a.type === 'video');
+    onVisualMediaChange(hasVisual);
+  }, [attachments, onVisualMediaChange]);
 
   const getFileType = (file: File): 'image' | 'video' | 'file' => {
       const ext = getExtension(file.name);
@@ -219,6 +237,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading, 
            {/* Bottom Toolbar */}
            <div className="flex items-center justify-between mt-2 pt-2 border-t border-transparent shrink-0">
               <div className="flex items-center gap-2">
+                  <div className="relative group min-w-[120px]">
+                    <select
+                        value={selectedModel}
+                        onChange={(e) => onModelSelect(e.target.value)}
+                        className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs py-1.5 pl-3 pr-8 rounded-lg outline-none focus:border-blue-500 dark:focus:border-blue-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors truncate"
+                        disabled={isLoading}
+                    >
+                        {availableModels.map(model => (
+                            <option key={model.id} value={model.id}>
+                                {model.name}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+                  </div>
+
+                  <div className="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
+
                   <button
                       onClick={() => fileInputRef.current?.click()}
                       className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"
