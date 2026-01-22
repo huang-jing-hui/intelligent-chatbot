@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check } from 'lucide-react';
@@ -106,11 +107,11 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
     <article className={`prose prose-sm dark:prose-invert max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         components={{
           // Avoid default 'pre' styling from Tailwind Typography
           pre: ({ children }) => <>{children}</>,
-          a: ({ node, href, children, ...props }) => {
+          a: ({ node, href, children, ...props }: any) => {
             if (!href) return <a {...props}>{children}</a>;
             
             // Simple check for video extensions
@@ -140,20 +141,20 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
               </a>
             );
           },
-          img: ({ node, ...props }) => (
+          img: ({ node, ...props }: any) => (
             <img
               className="max-w-full max-h-96 object-contain rounded-lg shadow-sm my-2"
               {...props}
             />
           ),
-          table: ({ node, ...props }) => (
+          table: ({ node, ...props }: any) => (
             <div className="my-4 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm text-[13px]">
               <table className="min-w-full border-collapse" {...props} />
             </div>
           ),
-          thead: ({ node, ...props }) => <thead className="bg-gray-50 dark:bg-white/5" {...props} />,
-          th: ({ node, ...props }) => <th className="border-b border-gray-200 dark:border-gray-800 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
-          td: ({ node, ...props }) => <td className="border-b border-gray-100 dark:border-gray-900 px-3 py-2 text-[13px] text-gray-600 dark:text-gray-300" {...props} />,
+          thead: ({ node, ...props }: any) => <thead className="bg-gray-50 dark:bg-white/5" {...props} />,
+          th: ({ node, ...props }: any) => <th className="border-b border-gray-200 dark:border-gray-800 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" {...props} />,
+          td: ({ node, ...props }: any) => <td className="border-b border-gray-100 dark:border-gray-900 px-3 py-2 text-[13px] text-gray-600 dark:text-gray-300" {...props} />,
 
           code(props: any) {
             const { children, className, node, ...rest } = props;

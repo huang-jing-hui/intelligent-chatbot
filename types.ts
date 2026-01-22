@@ -15,6 +15,7 @@ export const vlm_handlers = [
   "xls",
   "xlsx",
   "csv",
+  "ipynb",
 ];
 
 export const txt_handlers = [
