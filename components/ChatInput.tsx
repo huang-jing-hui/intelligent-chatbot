@@ -135,8 +135,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  const isUploading = attachments.some(a => a.isLoading);
+
   const handleSend = () => {
-    if ((!inputValue.trim() && attachments.length === 0) || isLoading) return;
+    if ((!inputValue.trim() && attachments.length === 0) || isLoading || isUploading) return;
 
     // Filter out still loading attachments or ensure we wait?
     // For now, we only send ready attachments.
@@ -292,11 +294,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   ) : (
                     <button
                         onClick={handleSend}
-                        disabled={(!inputValue.trim() && attachments.length === 0)}
+                        disabled={(!inputValue.trim() && attachments.length === 0) || isUploading}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm font-medium text-sm"
                     >
-                        <Send className="w-4 h-4" />
-                        <span>Send</span>
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        <span>{isUploading ? 'Uploading...' : 'Send'}</span>
                     </button>
                   )}
               </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Message, Attachment, ToolCall, ToolResult } from '../types';
 import { ReasoningBlock, ToolCallsBlock, ToolResultBlock, InterruptBlock } from './MessageBlocks';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { Download, Copy, Check, Trash2, FileText, FileCode, FileSpreadsheet, File as FileIcon, FileImage, FileVideo } from 'lucide-react';
+import { Download, Copy, Check, Trash2, FileText, FileCode, FileSpreadsheet, File as FileIcon, FileImage, FileVideo, Loader2 } from 'lucide-react';
 
 interface Props {
   msg: Message;
@@ -37,13 +37,19 @@ const CopyButton = ({ content, isUser }: { content: string; isUser: boolean }) =
   );
 };
 
-const DeleteButton = ({ isUser, onDelete }: { isUser: boolean; onDelete: () => void }) => {
+const DeleteButton = ({ isUser, onDelete }: { isUser: boolean; onDelete: () => Promise<void> | void }) => {
   const [confirming, setConfirming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirming) {
-      onDelete();
+      setIsDeleting(true);
+      try {
+        await onDelete();
+      } catch (e) {
+        setIsDeleting(false);
+      }
     } else {
       setConfirming(true);
       setTimeout(() => setConfirming(false), 3000);
@@ -53,14 +59,19 @@ const DeleteButton = ({ isUser, onDelete }: { isUser: boolean; onDelete: () => v
   return (
     <button
       onClick={handleClick}
+      disabled={isDeleting}
       className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${isUser
         ? 'bg-blue-100 text-blue-600 hover:bg-red-100 hover:text-red-600 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-red-900/30 dark:hover:text-red-400'
-        : 'bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400'}`}
+        : 'bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400'} ${isDeleting ? 'opacity-70 cursor-wait' : ''}`}
       title="Delete Message"
     >
-      <Trash2 className={`w-3.5 h-3.5 ${confirming ? 'text-red-500' : ''}`} />
-      <span className={`text-[10px] font-medium uppercase tracking-wider ${confirming ? 'text-red-500' : ''}`}>
-        {confirming ? 'Confirm?' : 'Delete'}
+      {isDeleting ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : (
+        <Trash2 className={`w-3.5 h-3.5 ${confirming ? 'text-red-500' : ''}`} />
+      )}
+      <span className={`text-[10px] font-medium uppercase tracking-wider ${confirming || isDeleting ? 'text-red-500' : ''}`}>
+        {isDeleting ? 'Deleting...' : confirming ? 'Confirm?' : 'Delete'}
       </span>
     </button>
   );

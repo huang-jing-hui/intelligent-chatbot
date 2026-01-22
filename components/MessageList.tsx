@@ -217,7 +217,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   const isLast = isLastGroup && msgIndex === group.messages.length - 1;
                   return (
                     <MessageItem
-                      key={msg.id || msgIndex} // Use unique ID if available, else index (but index changes if loading previous)
+                      key={msg.message_id || msgIndex} // Use unique ID if available, else index (but index changes if loading previous)
                       msg={msg}
                       isUser={isUser}
                       onDeleteMessage={onDeleteMessage}
@@ -357,5 +357,5 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     if (prevLast.tool_calls?.length !== nextLast.tool_calls?.length) return false;
   }
 
-  return true; 
+  return true;
 });

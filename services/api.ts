@@ -239,7 +239,6 @@ export const uploadFile = async (url: string,file_name:string,need_parse:boolean
     if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
     }
-    console.log('uploadFile:',url, file_name, need_parse)
 
     const response = await fetch(`${getApiBaseUrl()}/v1/file/upload`, {
         method: 'POST',
