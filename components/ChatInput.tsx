@@ -17,6 +17,7 @@ interface ChatInputProps {
   availableModels: Model[];
   selectedModel: string;
   onModelSelect: (modelId: string) => void;
+  onError?: (message: string) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({ 
@@ -26,7 +27,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onVisualMediaChange,
   availableModels,
   selectedModel,
-  onModelSelect
+  onModelSelect,
+  onError
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -90,10 +92,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             setAttachments(prev => prev.map(p =>
                 p.id === att.id ? { ...p, url: serverUrl, isLoading: false } : p
             ));
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to upload file", file.name, error);
             // Remove failed attachment
             setAttachments(prev => prev.filter(p => p.id !== att.id));
+            if (onError) {
+              onError(`Failed to upload ${file.name}: ${error?.message || 'Unknown error'}`);
+            }
         }
     }));
   };

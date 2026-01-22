@@ -560,6 +560,7 @@ const App: React.FC = () => {
           availableModels={availableModels}
           selectedModel={selectedModel}
           onModelSelect={setSelectedModel}
+          onError={(msg) => showToast(msg, 'error')}
         />
       </div>
       
