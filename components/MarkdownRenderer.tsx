@@ -73,21 +73,34 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
   }
 
   // Safe Pre-processing
-  const processedContent = content
-    .replace(/\\\[([\s\S]*?)\\\]/g, (_, equation) => `\n$$\n${equation.trim()}\n$$\n`)
-    .replace(/\\\(([\s\S]*?)\\\)/g, (_, equation) => `$${equation.trim()}$`)
-    .split('\n')
-    .map((line, i, arr) => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('|') && i > 0) {
-        const prevTrimmed = arr[i - 1].trim();
-        if (prevTrimmed !== '' && !prevTrimmed.startsWith('|')) {
-          return '\n' + line;
+  const processedContent = (() => {
+    if (typeof content !== 'string') return content;
+    
+    const codeBlocks: string[] = [];
+    const tempContent = content.replace(/(```[\s\S]*?```|`[\s\S]*?`)/g, (match) => {
+      const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
+      codeBlocks.push(match);
+      return placeholder;
+    });
+
+    const result = tempContent
+      .replace(/\\\[([\s\S]*?)\\\]/g, (_, equation) => `\n$$\n${equation.trim()}\n$$\n`)
+      .replace(/\\\(([\s\S]*?)\\\)/g, (_, equation) => `$${equation.trim()}$`)
+      .split('\n')
+      .map((line, i, arr) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('|') && i > 0) {
+          const prevTrimmed = arr[i - 1].trim();
+          if (prevTrimmed !== '' && !prevTrimmed.startsWith('|')) {
+            return '\n' + line;
+          }
         }
-      }
-      return line;
-    })
-    .join('\n');
+        return line;
+      })
+      .join('\n');
+
+    return result.replace(/___CODE_BLOCK_(\d+)___/g, (_, index) => codeBlocks[Number(index)]);
+  })();
 
   return (
     <article className={`prose prose-sm dark:prose-invert max-w-none ${className}`}>
