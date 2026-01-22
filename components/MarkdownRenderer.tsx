@@ -97,9 +97,39 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
         components={{
           // Avoid default 'pre' styling from Tailwind Typography
           pre: ({ children }) => <>{children}</>,
+          a: ({ node, href, children, ...props }) => {
+            if (!href) return <a {...props}>{children}</a>;
+            
+            // Simple check for video extensions
+            const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(href.split('?')[0]);
+            
+            if (isVideo) {
+              return (
+                <video
+                  src={href}
+                  controls
+                  className="max-w-full max-h-96 rounded-lg shadow-sm my-2 block"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              );
+            }
+            
+            return (
+              <a 
+                href={href} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
           img: ({ node, ...props }) => (
             <img
-              className="max-w-xs max-h-48 object-contain rounded-lg shadow-sm my-2"
+              className="max-w-full max-h-96 object-contain rounded-lg shadow-sm my-2"
               {...props}
             />
           ),
