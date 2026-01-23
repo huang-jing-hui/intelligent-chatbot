@@ -22,10 +22,10 @@ interface ChatInputProps {
   onError?: (message: string) => void;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ 
-  onSendMessage, 
-  isLoading, 
-  onStop, 
+export const ChatInput: React.FC<ChatInputProps> = ({
+  onSendMessage,
+  isLoading,
+  onStop,
   onVisualMediaChange,
   availableModels,
   selectedModel,
@@ -60,8 +60,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const isSupportedFile = (file: File) => {
       const ext = getExtension(file.name);
-      return vlm_handlers.includes(ext) || 
-             txt_handlers.includes(ext) || 
+      return vlm_handlers.includes(ext) ||
+             txt_handlers.includes(ext) ||
              ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov', 'm4v'].includes(ext);
   };
 
@@ -154,19 +154,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       // Use highlight.js to auto-detect language
       const result = hljs.highlightAuto(text);
-      const language = result.language;
+      let language = result.language;
+        if (language === undefined) {
+            language = 'text';
+        }
+      console.log('Language:', language);
 
       // Only format as code block if a specific language is detected with some confidence
       // and it's not just plaintext/undefined
-      if (language && language !== 'plaintext' && language !== 'text') {
+      if (language) {
         e.preventDefault();
         const lowerLang = language.toLowerCase();
         const formattedText = `\`\`\`${lowerLang}\n${text}\n\`\`\`\n`;
-        
+
         const textarea = textareaRef.current || (e.target as HTMLTextAreaElement);
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
-        
+
         const newValue = inputValue.substring(0, start) + formattedText + inputValue.substring(end);
         setInputValue(newValue);
 
@@ -183,7 +187,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const isUploading = attachments.some(a => a.isLoading);
-  
+
   const handleContentChange = (newContent: string) => {
     setInputValue(newContent);
   };
@@ -280,8 +284,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
            }`}>
              {isPreview ? (
                <div className="px-2 py-2 text-sm">
-                  <MarkdownRenderer 
-                    content={inputValue || '*Nothing to preview*'} 
+                  <MarkdownRenderer
+                    content={inputValue || '*Nothing to preview*'}
                     onContentChange={handleContentChange}
                   />
                </div>
