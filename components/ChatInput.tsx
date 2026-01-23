@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, FileText, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Attachment, vlm_handlers, txt_handlers, Model } from '../types';
+import hljs from 'highlight.js';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface PendingAttachment extends Attachment {
   id: string; // Explicitly require id for pending attachments
@@ -32,10 +34,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPreview, setIsPreview] = useState(false);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<PendingAttachment | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Notify parent about visual media presence
   useEffect(() => {
@@ -137,10 +141,52 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (files.length > 0) {
       e.preventDefault();
       processFiles(files);
+      return;
+    }
+
+    const text = e.clipboardData.getData('text');
+    if (text) {
+      const trimmedText = text.trim();
+      // If already wrapped in code block, do not re-wrap
+      if (trimmedText.startsWith('```') && trimmedText.endsWith('```')) {
+          return;
+      }
+
+      // Use highlight.js to auto-detect language
+      const result = hljs.highlightAuto(text);
+      const language = result.language;
+
+      // Only format as code block if a specific language is detected with some confidence
+      // and it's not just plaintext/undefined
+      if (language && language !== 'plaintext' && language !== 'text') {
+        e.preventDefault();
+        const lowerLang = language.toLowerCase();
+        const formattedText = `\`\`\`${lowerLang}\n${text}\n\`\`\`\n`;
+        
+        const textarea = textareaRef.current || (e.target as HTMLTextAreaElement);
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        const newValue = inputValue.substring(0, start) + formattedText + inputValue.substring(end);
+        setInputValue(newValue);
+
+        // Move cursor to end of inserted text
+        setTimeout(() => {
+          if (textarea) {
+            textarea.selectionStart = start + formattedText.length;
+            textarea.selectionEnd = start + formattedText.length;
+            textarea.focus();
+          }
+        }, 0);
+      }
     }
   };
 
   const isUploading = attachments.some(a => a.isLoading);
+  
+  const handleContentChange = (newContent: string) => {
+    setInputValue(newContent);
+  };
 
   const handleSend = () => {
     if ((!inputValue.trim() && attachments.length === 0) || isLoading || isUploading) return;
@@ -229,17 +275,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
              </div>
            )}
 
-           <textarea
-             value={inputValue}
-             onChange={(e) => setInputValue(e.target.value)}
-             onPaste={handlePaste}
-             onKeyDown={handleKeyDown}
-             placeholder={isLoading ? "Generating response..." : "Send a message... (Paste images/videos/files supported)"}
-             disabled={isLoading}
-             className={`flex-1 w-full bg-transparent border-0 focus:ring-0 outline-none resize-none py-2 text-sm ${
-                 isExpanded ? 'h-full' : 'max-h-32 min-h-[44px]'
-             }`}
-           />
+           <div className={`flex-1 w-full ${isPreview ? 'overflow-y-auto' : ''} ${
+               isExpanded ? 'h-full' : 'max-h-32 min-h-[44px]'
+           }`}>
+             {isPreview ? (
+               <div className="px-2 py-2 text-sm">
+                  <MarkdownRenderer 
+                    content={inputValue || '*Nothing to preview*'} 
+                    onContentChange={handleContentChange}
+                  />
+               </div>
+             ) : (
+               <textarea
+                 ref={textareaRef}
+                 value={inputValue}
+                 onChange={(e) => setInputValue(e.target.value)}
+                 onPaste={handlePaste}
+                 onKeyDown={handleKeyDown}
+                 placeholder={isLoading ? "Generating response..." : "Send a message... (Paste images/videos/files supported)"}
+                 disabled={isLoading}
+                 className="w-full h-full bg-transparent border-0 focus:ring-0 outline-none resize-none py-2 text-sm"
+               />
+             )}
+           </div>
 
            {/* Bottom Toolbar */}
            <div className="flex items-center justify-between mt-2 pt-2 border-t border-transparent shrink-0">
@@ -278,6 +336,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       accept="*"
                       multiple
                   />
+                  <button
+                      onClick={() => setIsPreview(!isPreview)}
+                      className={`p-2 rounded-lg transition-colors ${isPreview ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800'}`}
+                      title={isPreview ? "Edit" : "Preview Markdown"}
+                  >
+                      <Eye className="w-5 h-5" />
+                  </button>
                   <button
                       onClick={() => setIsExpanded(!isExpanded)}
                       className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors"

@@ -12,9 +12,15 @@ import 'katex/dist/katex.min.css';
 interface Props {
   content: string;
   className?: string;
+  onContentChange?: (newContent: string) => void;
 }
 
-const CodeBlock = ({ language, value }: { language: string; value: string }) => {
+const LANGUAGES = [
+  'python', 'javascript', 'typescript', 'json', 'html', 'css', 
+  'bash', 'cpp', 'java', 'go', 'rust', 'php', 'sql', 'xml', 'yaml', 'markdown', 'text'
+];
+
+const CodeBlock = ({ language, value, fullContent, onContentChange }: { language: string; value: string; fullContent?: string; onContentChange?: (c: string) => void }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -24,12 +30,58 @@ const CodeBlock = ({ language, value }: { language: string; value: string }) => 
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (!onContentChange || !fullContent) return;
+    const newLang = e.target.value;
+    
+    // Attempt to find and replace the code block header in the full content
+    // We look for ```currentLang followed by the code content
+    // This is a heuristic that assumes the content is unique enough or we replace the first match
+    
+    // Normalize newlines in value for regex matching
+    const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape regex chars
+    
+    // Regex to find the block: ```lang \n content
+    // We handle optional whitespace around lang
+    const regex = new RegExp(`(\`\`\`)${language}(\\s*\\n)${escapedValue}`, 'm');
+    const match = fullContent.match(regex);
+
+    if (match) {
+        // Replace ONLY the language part
+        // match[0] is the whole block header + body
+        // match[1] is ```
+        // match[2] is \n (or whitespace+\n)
+        
+        // Actually, safer to just replace the whole opening tag if we find the content
+        const newContent = fullContent.replace(regex, `$1${newLang}$2${value}`);
+        onContentChange(newContent);
+    } else {
+        // Fallback: simple replace of ```language if unique? No, too risky.
+        // Try without exact value match if value is huge/complex?
+        console.warn("Could not find code block to update language");
+    }
+  };
+
   return (
     <div className="my-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-[#f6f8fa] dark:bg-gray-900/50 shadow-sm group/code not-prose">
       <div className="flex items-center justify-between px-4 py-1.5 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-          {language || 'text'}
-        </span>
+        {onContentChange ? (
+             <select
+                 value={language}
+                 onChange={handleLanguageChange}
+                 className="bg-transparent text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-none outline-none focus:ring-0 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 p-0"
+                 onClick={(e) => e.stopPropagation()}
+             >
+                 {LANGUAGES.map(lang => (
+                     <option key={lang} value={lang}>{lang}</option>
+                 ))}
+                 {!LANGUAGES.includes(language) && <option value={language}>{language}</option>}
+             </select>
+        ) : (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              {language || 'text'}
+            </span>
+        )}
         <button
           onClick={handleCopy}
           className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
@@ -61,7 +113,7 @@ const CodeBlock = ({ language, value }: { language: string; value: string }) => 
   );
 };
 
-export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, className }) => {
+export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, className, onContentChange }) => {
   // Ensure content is a string to prevent crashes
   if (typeof content !== 'string') {
     if (!content) return null;
@@ -78,6 +130,7 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
     if (typeof content !== 'string') return content;
     
     const codeBlocks: string[] = [];
+    // ... logic ...
     const tempContent = content.replace(/(```[\s\S]*?```|`[\s\S]*?`)/g, (match) => {
       const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
       codeBlocks.push(match);
@@ -87,6 +140,7 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
     const result = tempContent
       .replace(/\\\[([\s\S]*?)\\\]/g, (_, equation) => `\n$$\n${equation.trim()}\n$$\n`)
       .replace(/\\\(([\s\S]*?)\\\)/g, (_, equation) => `$${equation.trim()}$`)
+      // ... split map join ...
       .split('\n')
       .map((line, i, arr) => {
         const trimmed = line.trim();
@@ -111,6 +165,7 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
         components={{
           // Avoid default 'pre' styling from Tailwind Typography
           pre: ({ children }) => <>{children}</>,
+          // ... (a, img, table tags - no changes needed) ...
           a: ({ node, href, children, ...props }: any) => {
             if (!href) return <a {...props}>{children}</a>;
             
@@ -166,7 +221,7 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
             const isCodeBlock = match || (className && className.includes('language-')) || value.includes('\n');
 
             if (isCodeBlock) {
-              return <CodeBlock language={language || 'text'} value={value} />;
+              return <CodeBlock language={language || 'text'} value={value} fullContent={content} onContentChange={onContentChange} />;
             }
 
             return (
@@ -184,5 +239,6 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
 }, (prevProps, nextProps) => {
   // Only re-render if content or className actually changed
   return prevProps.content === nextProps.content &&
-    prevProps.className === nextProps.className;
+    prevProps.className === nextProps.className &&
+    prevProps.onContentChange === nextProps.onContentChange;
 });
