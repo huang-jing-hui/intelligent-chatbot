@@ -59,7 +59,7 @@ export async function* streamChatCompletion(request: ChatRequest, signal?: Abort
 }
 
 // REST endpoints
-export const getChatMessages = async (chatId: string, offset: number, limit: number): Promise<Message[]> => {
+export const getChatMessages = async (chatId: string, offset: number, limit: number, signal?: AbortSignal): Promise<Message[]> => {
     const apiKey = getApiKey();
     const headers: { 'Content-Type': string; 'Authorization'?: string } = {
         'Content-Type': 'application/json',
@@ -80,7 +80,8 @@ export const getChatMessages = async (chatId: string, offset: number, limit: num
                 },
             "offset": offset,
             "limit": limit
-        })
+        }),
+        signal
     });
     const data = await response.json();
     if (data.status === 'success') {

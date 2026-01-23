@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const lastStreamedIdRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const historyAbortControllerRef = useRef<AbortController | null>(null);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -69,6 +70,17 @@ const App: React.FC = () => {
         lastStreamedIdRef.current = null;
         return;
       }
+      
+      // Cancel previous fetch if it's still pending
+      if (historyAbortControllerRef.current) {
+        historyAbortControllerRef.current.abort();
+      }
+
+      // Clear messages immediately to trigger loading state in UI
+      setMessages([]);
+      setOffset(0);
+      setHasMore(true);
+
       loadMessages(currentSessionId);
     } else {
       setMessages([]);
@@ -88,17 +100,21 @@ const App: React.FC = () => {
   };
 
   const loadMessages = async (id: string, isLoadMore: boolean = false) => {
-    if (isLoading || isFetchingHistory) return;
+    if (isLoadMore && isFetchingHistory) return;
+
     try {
+      const controller = new AbortController();
+
       if (isLoadMore) {
         setIsFetchingHistory(true);
       } else {
         setIsLoading(true);
+        historyAbortControllerRef.current = controller;
       }
 
       const currentOffset = isLoadMore ? offset : 0;
 
-      const msgs = await getChatMessages(id, currentOffset, LIMIT);
+      const msgs = await getChatMessages(id, currentOffset, LIMIT, controller.signal);
 
       // The API returns messages in reverse order (newest first), so we reverse them for display
       const orderedMsgs = [...msgs].reverse();
@@ -116,14 +132,25 @@ const App: React.FC = () => {
         setHasMore(true);
         setOffset(currentOffset + LIMIT);
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+          // Ignore abort errors as they are intentional
+          return;
+      }
       console.error(e);
       if (!isLoadMore) setMessages([]);
     } finally {
       if (isLoadMore) {
         setIsFetchingHistory(false);
       } else {
-        setIsLoading(false);
+        // Only unset isLoading if this request wasn't aborted
+        // (Check if the ref still points to our controller, or if signal is not aborted)
+        if (historyAbortControllerRef.current?.signal.aborted) {
+           // Do nothing, let the next request handle state
+        } else {
+           setIsLoading(false);
+           historyAbortControllerRef.current = null;
+        }
       }
     }
   };
