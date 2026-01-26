@@ -391,6 +391,14 @@ const App: React.FC = () => {
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
+        // Handle lc_source (intermediate steps indicator)
+        if (delta.lc_source) {
+            accumulatedMessage.lc_source = delta.lc_source;
+        } else {
+            // Clear lc_source when we receive normal content
+            accumulatedMessage.lc_source = undefined;
+        }
+
         // 1. Process Tool Call Deltas (Mutation Phase - Run ONCE)
         if (delta.tool_calls) {
            delta.tool_calls.forEach(tc => {

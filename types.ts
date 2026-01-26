@@ -40,6 +40,18 @@ export interface Model {
   isVlm: boolean;
 }
 
+// iflow
+/*
+export const AVAILABLE_MODELS: Model[] = [
+  { id: 'kimi-k2-250905', name: 'kimi-k2-250905', isVlm: false },
+  { id: 'qwen3-max', name: 'qwen3-max', isVlm: false },
+  { id: 'deepseek-v3.2', name: 'deepseek-v3.2', isVlm: false },
+  { id: 'qwen3-vl-plus', name: 'qwen3-vl-plus', isVlm: true },
+  // { id: 'doubao-seed-code-preview-251028', name: 'doubao-seed-code-preview-251028', isVlm: true },
+  // { id: 'glm-4-7-251222', name: 'glm-4-7-251222', isVlm: false },
+];
+*/
+
 export const AVAILABLE_MODELS: Model[] = [
   { id: 'kimi-k2-250905', name: 'kimi-k2-250905', isVlm: false },
   { id: 'kimi-k2-thinking-251104', name: 'kimi-k2-thinking-251104', isVlm: false },
@@ -71,6 +83,7 @@ export interface Message {
   interrupt_info?: InterruptInfo;
   files?: File[];
   attachments?: Attachment[];
+  lc_source?: string; // 中间步骤标识（如上下压缩、摘要等）
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
@@ -116,6 +129,7 @@ export interface StreamChunk {
         tool_calls?: ToolCallChunk[];
         tool_result?: ToolResult;
         interrupt_info?: InterruptInfo;
+        lc_source?: string;
       };
       finish_reason?: 'stop' | 'tool_calls' | 'interrupt' | null;
     }

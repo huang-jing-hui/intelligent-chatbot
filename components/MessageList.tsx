@@ -202,6 +202,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
         )}
 
         {groupedMessages.map((group, groupIndex) => {
+          const isUsage = true;
           const isUser = group.role === 'user';
           const isLastGroup = groupIndex === groupedMessages.length - 1;
 
@@ -229,7 +230,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                   );
                 })}
 
-                {!isUser && groupedTokenStats[groupIndex].total_tokens > 0 && (
+                {isUsage && !isUser && groupedTokenStats[groupIndex].total_tokens > 0 && (
                   <div
                     onClick={() => toggleTokenExpansion(groupIndex)}
                     className={`self-start mt-2 px-3 py-2 rounded-lg text-xs border cursor-pointer transition-all ${
