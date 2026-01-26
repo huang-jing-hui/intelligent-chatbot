@@ -144,46 +144,49 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return;
     }
 
-    const text = e.clipboardData.getData('text');
-    if (text) {
-      const trimmedText = text.trim();
-      // If already wrapped in code block, do not re-wrap
-      if (trimmedText.startsWith('```') && trimmedText.endsWith('```')) {
-          return;
-      }
+     const text = e.clipboardData.getData('text');
+     if (text) {
+       const trimmedText = text.trim();
+       // If already wrapped in code block, do not re-wrap
+       if (trimmedText.startsWith('```') && trimmedText.endsWith('```')) {
+           return;
+       }
 
-      // Use highlight.js to auto-detect language
-      const result = hljs.highlightAuto(text);
-      let language = result.language;
-        if (language === undefined) {
-            language = 'text';
-        }
-      console.log('Language:', language);
+       // Only process as code block if text length > 150 characters
+       if (text.length > 150) {
+         // Use highlight.js to auto-detect language
+         const result = hljs.highlightAuto(text);
+         let language = result.language;
+           if (language === undefined) {
+               language = 'text';
+           }
+         console.log('Language:', language);
 
-      // Only format as code block if a specific language is detected with some confidence
-      // and it's not just plaintext/undefined
-      if (language) {
-        e.preventDefault();
-        const lowerLang = language.toLowerCase();
-        const formattedText = `\`\`\`${lowerLang}\n${text}\n\`\`\`\n`;
+         // Only format as code block if a specific language is detected with some confidence
+         // and it's not just plaintext/undefined
+         if (language) {
+           e.preventDefault();
+           const lowerLang = language.toLowerCase();
+           const formattedText = `\`\`\`${lowerLang}\n${text}\n\`\`\`\n`;
 
-        const textarea = textareaRef.current || (e.target as HTMLTextAreaElement);
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
+           const textarea = textareaRef.current || (e.target as HTMLTextAreaElement);
+           const start = textarea.selectionStart;
+           const end = textarea.selectionEnd;
 
-        const newValue = inputValue.substring(0, start) + formattedText + inputValue.substring(end);
-        setInputValue(newValue);
+           const newValue = inputValue.substring(0, start) + formattedText + inputValue.substring(end);
+           setInputValue(newValue);
 
-        // Move cursor to end of inserted text
-        setTimeout(() => {
-          if (textarea) {
-            textarea.selectionStart = start + formattedText.length;
-            textarea.selectionEnd = start + formattedText.length;
-            textarea.focus();
-          }
-        }, 0);
-      }
-    }
+           // Move cursor to end of inserted text
+           setTimeout(() => {
+             if (textarea) {
+               textarea.selectionStart = start + formattedText.length;
+               textarea.selectionEnd = start + formattedText.length;
+               textarea.focus();
+             }
+           }, 0);
+         }
+       }
+     }
   };
 
   const isUploading = attachments.some(a => a.isLoading);
