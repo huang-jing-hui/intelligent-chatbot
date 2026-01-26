@@ -155,16 +155,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
        // Only process as code block if text length > 150 characters
        if (text.length > 150) {
          // Use highlight.js to auto-detect language
-         const result = hljs.highlightAuto(text);
-         let language = result.language;
-           if (language === undefined) {
-               language = 'text';
-           }
-         console.log('Language:', language);
+         // const result = hljs.highlightAuto(text);
+         // let language = result.language;
+         // console.log('Language:', language);
+         const language: string = "text"
 
-         // Only format as code block if a specific language is detected with some confidence
-         // and it's not just plaintext/undefined
-         if (language) {
+         // Only format as code block if a specific programming language is detected
+         // (not plaintext/undefined/text)
+         if (language && language !== 'text') {
            e.preventDefault();
            const lowerLang = language.toLowerCase();
            const formattedText = `\`\`\`${lowerLang}\n${text}\n\`\`\`\n`;
