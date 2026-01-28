@@ -16,7 +16,7 @@ interface Props {
 }
 
 const LANGUAGES = [
-  'python', 'javascript', 'typescript', 'json', 'html', 'css', 
+  'python', 'javascript', 'typescript', 'json', 'html', 'css',
   'bash', 'cpp', 'java', 'go', 'rust', 'php', 'sql', 'xml', 'yaml', 'markdown', 'text'
 ];
 
@@ -33,14 +33,14 @@ const CodeBlock = ({ language, value, fullContent, onContentChange }: { language
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (!onContentChange || !fullContent) return;
     const newLang = e.target.value;
-    
+
     // Attempt to find and replace the code block header in the full content
     // We look for ```currentLang followed by the code content
     // This is a heuristic that assumes the content is unique enough or we replace the first match
-    
+
     // Normalize newlines in value for regex matching
     const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape regex chars
-    
+
     // Regex to find the block: ```lang \n content
     // We handle optional whitespace around lang
     const regex = new RegExp(`(\`\`\`)${language}(\\s*\\n)${escapedValue}`, 'm');
@@ -51,7 +51,7 @@ const CodeBlock = ({ language, value, fullContent, onContentChange }: { language
         // match[0] is the whole block header + body
         // match[1] is ```
         // match[2] is \n (or whitespace+\n)
-        
+
         // Actually, safer to just replace the whole opening tag if we find the content
         const newContent = fullContent.replace(regex, `$1${newLang}$2${value}`);
         onContentChange(newContent);
@@ -128,7 +128,7 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
   // Safe Pre-processing
   const processedContent = (() => {
     if (typeof content !== 'string') return content;
-    
+
     const codeBlocks: string[] = [];
     // ... logic ...
     const tempContent = content.replace(/(```[\s\S]*?```|`[\s\S]*?`)/g, (match) => {
@@ -168,10 +168,10 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
           // ... (a, img, table tags - no changes needed) ...
           a: ({ node, href, children, ...props }: any) => {
             if (!href) return <a {...props}>{children}</a>;
-            
+
             // Simple check for video extensions
             const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(href.split('?')[0]);
-            
+
             if (isVideo) {
               return (
                 <video
@@ -183,12 +183,12 @@ export const MarkdownRenderer: React.FC<Props> = React.memo(({ content, classNam
                 </video>
               );
             }
-            
+
             return (
-              <a 
-                href={href} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:underline"
                 {...props}
               >

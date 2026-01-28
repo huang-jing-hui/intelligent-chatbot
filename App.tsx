@@ -116,14 +116,30 @@ const App: React.FC = () => {
 
       const msgs = await getChatMessages(id, currentOffset, LIMIT, controller.signal);
 
-      // The API returns messages in reverse order (newest first), so we reverse them for display
-      const orderedMsgs = [...msgs].reverse();
-
       setMessages(prev => {
-        const existingIds = new Set(isLoadMore ? prev.map(m => m.message_id).filter(Boolean) : []);
-        const uniqueNewMsgs = orderedMsgs.filter(m => !m.message_id || !existingIds.has(m.message_id));
+        // Merge existing messages with new messages
+        const allMessages = isLoadMore ? [...prev, ...msgs] : msgs;
 
-        return isLoadMore ? [...uniqueNewMsgs, ...prev] : uniqueNewMsgs;
+        // Deduplicate by message_id (if available) or by id
+        const messageMap = new Map<string, Message>();
+        allMessages.forEach(msg => {
+          const key = msg.message_id || msg.id;
+          if (key) {
+            // Keep the message with timestamp if available
+            if (!messageMap.has(key) || (msg.timestamp && (!messageMap.get(key)?.timestamp || msg.timestamp > messageMap.get(key)!.timestamp!))) {
+              messageMap.set(key, msg);
+            }
+          }
+        });
+
+        // Convert map back to array and sort by timestamp (oldest first)
+        const sortedMessages = Array.from(messageMap.values()).sort((a, b) => {
+          const timeA = a.timestamp || 0;
+          const timeB = b.timestamp || 0;
+          return timeA - timeB;
+        });
+
+        return sortedMessages;
       });
 
       if (msgs.length < LIMIT) {

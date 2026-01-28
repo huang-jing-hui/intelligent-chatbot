@@ -216,9 +216,11 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
 
                 {group.messages.map((msg, msgIndex) => {
                   const isLast = isLastGroup && msgIndex === group.messages.length - 1;
+                  // Use message_id or id as key, fallback to a combination of role and timestamp
+                  const uniqueKey = msg.message_id || msg.id || `${msg.role}-${msg.timestamp || msgIndex}`;
                   return (
                     <MessageItem
-                      key={msg.message_id || msgIndex} // Use unique ID if available, else index (but index changes if loading previous)
+                      key={uniqueKey}
                       msg={msg}
                       isUser={isUser}
                       onDeleteMessage={onDeleteMessage}

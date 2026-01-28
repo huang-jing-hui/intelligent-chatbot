@@ -40,28 +40,22 @@ export interface Model {
   isVlm: boolean;
 }
 
-// iflow
-/*
+// coding
 export const AVAILABLE_MODELS: Model[] = [
-  { id: 'kimi-k2-250905', name: 'kimi-k2-250905', isVlm: false },
-  { id: 'qwen3-max', name: 'qwen3-max', isVlm: false },
-  { id: 'deepseek-v3.2', name: 'deepseek-v3.2', isVlm: false },
-  { id: 'qwen3-vl-plus', name: 'qwen3-vl-plus', isVlm: true },
-  // { id: 'doubao-seed-code-preview-251028', name: 'doubao-seed-code-preview-251028', isVlm: true },
-  // { id: 'glm-4-7-251222', name: 'glm-4-7-251222', isVlm: false },
+  { id: 'doubao-seed-code-preview-latest', name: 'doubao-seed-code-preview-latest', isVlm: true },
+  { id: 'ark-code-latest', name: 'ark-code-latest', isVlm: false },
 ];
-*/
 
-export const AVAILABLE_MODELS: Model[] = [
+/*export const AVAILABLE_MODELS: Model[] = [
   { id: 'kimi-k2-250905', name: 'kimi-k2-250905', isVlm: false },
   { id: 'kimi-k2-thinking-251104', name: 'kimi-k2-thinking-251104', isVlm: false },
   { id: 'deepseek-v3-2-251201', name: 'deepseek-v3-2-251201', isVlm: false },
   { id: 'doubao-seed-1-8-251228', name: 'doubao-seed-1-8-251228', isVlm: true },
   { id: 'doubao-seed-code-preview-251028', name: 'doubao-seed-code-preview-251028', isVlm: true },
   { id: 'glm-4-7-251222', name: 'glm-4-7-251222', isVlm: false },
-];
+];*/
 
-export const DEFAULT_MODEL = 'deepseek-v3-2-251201';
+export const DEFAULT_MODEL = 'ark-code-latest';
 
 export type MessagePart =
   | { type: 'reasoning'; content: string }
