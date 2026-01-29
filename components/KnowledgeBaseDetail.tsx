@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft, RefreshCw, Upload, Trash2, X, FileText,
-  AlertCircle, RefreshCw as RefreshIcon, Eye, FileIcon
+  AlertCircle, RefreshCw as RefreshIcon, Eye
 } from 'lucide-react';
 import {
-  listKBFiles, deleteFileFromKnowledgeBase, storeDocument, searchDocuments
+  listKBFiles, deleteFileFromKnowledgeBase, storeDocument, getParentDocByFileUrl
 } from '../services/api';
-import { KnowledgeBase, KBFile, SearchResult } from '../types';
+import { KnowledgeBase, KBFile } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 import { FileIconComponent } from './KnowledgeBaseManager';
 
@@ -16,13 +16,22 @@ interface KnowledgeBaseDetailProps {
 }
 
 // 文档块查看器组件
+interface DocumentChunk {
+  content: string;
+  metadata: {
+    source?: string;
+    parent_id?: string;
+    chunk_index?: number;
+    [key: string]: any;
+  };
+}
+
 const DocumentChunkViewer: React.FC<{
-  kbId: string;
   fileUrl: string;
   fileName: string;
   onClose: () => void;
-}> = ({ kbId, fileUrl, fileName, onClose }) => {
-  const [chunks, setChunks] = useState<SearchResult[]>([]);
+}> = ({ fileUrl, fileName, onClose }) => {
+  const [chunks, setChunks] = useState<DocumentChunk[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -32,15 +41,8 @@ const DocumentChunkViewer: React.FC<{
   const loadChunks = async () => {
     setIsLoading(true);
     try {
-      const results = await searchDocuments({
-        query: '',
-        knowledge_base_id: kbId,
-        k: 100,
-      });
-      const fileChunks = results.filter(
-        (r) => r.metadata?.source === fileUrl || r.metadata?.file_url === fileUrl
-      );
-      setChunks(fileChunks);
+      const result = await getParentDocByFileUrl(fileUrl);
+      setChunks(result);
     } catch (error) {
       console.error('加载文档块失败:', error);
     } finally {
@@ -133,6 +135,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({ kb, on
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetFile, setDeleteTargetFile] = useState<KBFile | null>(null);
+  const [viewFile, setViewFile] = useState<KBFile | null>(null);
 
   // 加载文件列表
   const loadFiles = async () => {
@@ -217,6 +220,11 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({ kb, on
     }
   };
 
+  // 查看文件文档块
+  const handleViewFile = (file: KBFile) => {
+    setViewFile(file);
+  };
+
   return (
     <div className="space-y-4">
       {/* 头部 */}
@@ -279,26 +287,42 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({ kb, on
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {files.map((file) => {
-              const fileName = file.file_url.split('/').pop() || file.file_url;
+              // 使用 file_name 字段，如果没有则使用 URL 的最后一部分
+              const displayName = file.file_name || file.file_url.split('/').pop() || file.file_url;
               return (
                 <div
                   key={file.id}
-                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div
+                      className="flex items-center gap-3 flex-1 cursor-pointer"
+                      onClick={() => handleViewFile(file)}
+                    >
                       <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                        <FileIconComponent fileName={fileName} />
+                        <FileIconComponent fileName={displayName} />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">{fileName}</p>
-                        <p className="text-xs text-gray-500">ID: {file.id} · 创建于: {new Date(file.created_at).toLocaleDateString()}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {displayName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          ID: {file.id} · 创建于: {new Date(file.created_at).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
+                        onClick={() => handleViewFile(file)}
+                        className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                        title="查看文档块"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleDeleteFile(file)}
                         className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                        title="删除文件"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -388,10 +412,19 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({ kb, on
         }}
         onConfirm={confirmDeleteFile}
         title="删除文件"
-        message={deleteTargetFile ? `确定要从知识库中删除文件 "${deleteTargetFile.file_url.split('/').pop()}" 吗？此操作无法撤销。` : ''}
+        message={deleteTargetFile ? `确定要从知识库中删除文件 "${deleteTargetFile.file_name || deleteTargetFile.file_url}" 吗？此操作无法撤销。` : ''}
         confirmText="删除"
         isDestructive={true}
       />
+
+      {/* 查看文档块弹窗 */}
+      {viewFile && (
+        <DocumentChunkViewer
+          fileUrl={viewFile.file_url}
+          fileName={viewFile.file_name || viewFile.file_url}
+          onClose={() => setViewFile(null)}
+        />
+      )}
     </div>
   );
 };

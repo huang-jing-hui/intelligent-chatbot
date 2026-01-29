@@ -470,3 +470,24 @@ export const deleteFileFromKnowledgeBase = async (request: DeleteFileFromKBReque
     throw new Error(data.message || '删除文件失败');
   }
 };
+
+// 根据文件URL获取父文档内容
+export const getParentDocByFileUrl = async (fileUrl: string): Promise<Array<{content: string; metadata: any}>> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/document/get_by_file`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ file_url: fileUrl }),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data.parent_documents || [];
+  } else {
+    throw new Error(data.message || '获取文档内容失败');
+  }
+};
