@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings } from 'lucide-react';
 import { ChatSession } from '../types';
-import { Modal } from './Modal';
 import { ConfirmDialog } from './ConfirmDialog';
 
 interface Props {
@@ -11,6 +10,7 @@ interface Props {
   onNewChat: () => void;
   onDeleteChat: (id: string) => void;
   onRenameChat: (id: string, newTitle: string) => Promise<void>;
+  onOpenSettings?: () => void;
 }
 
 export const Sidebar: React.FC<Props> = ({
@@ -19,7 +19,8 @@ export const Sidebar: React.FC<Props> = ({
   onSelectSession,
   onNewChat,
   onDeleteChat,
-  onRenameChat
+  onRenameChat,
+  onOpenSettings
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -191,13 +192,15 @@ export const Sidebar: React.FC<Props> = ({
                <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">Hjh</p>
                <p className="text-[11px] text-gray-500 truncate">jump</p>
             </div>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-blue-500 transition-all"
-              title="Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-blue-500 transition-all"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
          </div>
       </div>
 

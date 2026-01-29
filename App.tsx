@@ -7,10 +7,12 @@ import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
+import { SettingsPage } from './components/SettingsPage';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
@@ -566,8 +568,15 @@ const App: React.FC = () => {
           onNewChat={createNewChat}
           onDeleteChat={handleDeleteChat}
           onRenameChat={handleRenameChat}
+          onOpenSettings={() => setShowSettings(true)}
         />
       </div>
+
+      {/* Settings Page */}
+      <SettingsPage
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full">

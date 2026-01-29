@@ -257,3 +257,216 @@ export const uploadFile = async (url: string,file_name:string,need_parse:boolean
         throw new Error(`上传失败: ${data.message || '未知错误'}`);
     }
 };
+
+// ==================== 知识库 API ====================
+
+import {
+  KnowledgeBase, KBFile, DocumentChunk, SearchResult,
+  CreateKnowledgeBaseRequest, UpdateKnowledgeBaseRequest, DeleteKnowledgeBaseRequest,
+  GetKnowledgeBaseRequest, ListKnowledgeBasesRequest, StoreDocumentRequest,
+  SearchDocumentsRequest, DeleteDocumentRequest, ListKBFilesRequest, DeleteFileFromKBRequest
+} from '../types';
+
+// 知识库管理
+
+export const createKnowledgeBase = async (request: CreateKnowledgeBaseRequest): Promise<KnowledgeBase> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/create`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data;
+  } else {
+    throw new Error(data.message || '创建知识库失败');
+  }
+};
+
+export const updateKnowledgeBase = async (request: UpdateKnowledgeBaseRequest): Promise<boolean> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/update`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return true;
+  } else {
+    throw new Error(data.message || '更新知识库失败');
+  }
+};
+
+export const deleteKnowledgeBase = async (request: DeleteKnowledgeBaseRequest): Promise<boolean> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/delete`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return true;
+  } else {
+    throw new Error(data.message || '删除知识库失败');
+  }
+};
+
+export const getKnowledgeBase = async (request: GetKnowledgeBaseRequest): Promise<KnowledgeBase | null> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/get`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data;
+  } else {
+    return null;
+  }
+};
+
+export const listKnowledgeBases = async (request: ListKnowledgeBasesRequest = { limit: 100 }): Promise<KnowledgeBase[]> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/list`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data.knowledge_bases || [];
+  } else {
+    throw new Error(data.message || '获取知识库列表失败');
+  }
+};
+
+// 文档管理
+
+export const storeDocument = async (request: StoreDocumentRequest): Promise<string[]> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/document/store`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data.document_ids || [];
+  } else {
+    throw new Error(data.message || '存储文档失败');
+  }
+};
+
+export const searchDocuments = async (request: SearchDocumentsRequest): Promise<SearchResult[]> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/document/search`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data.documents || [];
+  } else {
+    throw new Error(data.message || '搜索文档失败');
+  }
+};
+
+export const deleteDocument = async (request: DeleteDocumentRequest): Promise<boolean> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/document/delete`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return true;
+  } else {
+    throw new Error(data.message || '删除文档失败');
+  }
+};
+
+export const listKBFiles = async (request: ListKBFilesRequest): Promise<KBFile[]> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/files/list`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return data.data.files || [];
+  } else {
+    throw new Error(data.message || '获取文件列表失败');
+  }
+};
+
+export const deleteFileFromKnowledgeBase = async (request: DeleteFileFromKBRequest): Promise<boolean> => {
+  const apiKey = getApiKey();
+  const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(`${getApiBaseUrl()}/v1/rag/knowledge_base/files/delete`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+  const data = await response.json();
+  if (data.status === 'success') {
+    return true;
+  } else {
+    throw new Error(data.message || '删除文件失败');
+  }
+};

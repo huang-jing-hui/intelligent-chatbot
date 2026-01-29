@@ -43,7 +43,7 @@ export interface Model {
 // coding
 export const AVAILABLE_MODELS: Model[] = [
   { id: 'doubao-seed-code-preview-latest', name: 'doubao-seed-code-preview-latest', isVlm: true },
-  { id: 'ark-code-latest', name: 'ark-code-latest', isVlm: false },
+  { id: 'ark-code-latest', name: 'ark-code-latest', isVlm: true },
 ];
 
 /*export const AVAILABLE_MODELS: Model[] = [
@@ -170,4 +170,108 @@ export interface ChatRequest {
       thread_id?: string;
     }
   };
+}
+
+// ==================== 知识库类型定义 ====================
+
+export interface KnowledgeBase {
+  kb_id: string;
+  name: string;
+  description?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KBFile {
+  id: string;
+  file_url: string;
+  file_name: string;
+  kb_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface DocumentChunk {
+  content: string;
+  metadata: {
+    source?: string;
+    parent_id?: string;
+    chunk_index?: number;
+    [key: string]: any;
+  };
+}
+
+export interface SearchResult {
+  content: string;
+  metadata: {
+    source?: string;
+    parent_id?: string;
+    chunk_index?: number;
+    [key: string]: any;
+  };
+}
+
+export interface CreateKnowledgeBaseRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateKnowledgeBaseRequest {
+  kb_id: string;
+  name?: string;
+  description?: string;
+}
+
+export interface DeleteKnowledgeBaseRequest {
+  kb_id: string;
+}
+
+export interface GetKnowledgeBaseRequest {
+  kb_id: string;
+}
+
+export interface ListKnowledgeBasesRequest {
+  limit: number;
+}
+
+export interface StoreDocumentRequest {
+  file_url: string;
+  file_base64: string;
+  knowledge_base_id: string;
+  file_name?: string;
+  chunk_size?: number;
+  chunk_overlap?: number;
+  metadata?: Record<string, any>;
+  use_parent_child?: boolean;
+  parent_chunk_size?: number;
+  parent_chunk_overlap?: number;
+  child_chunk_size?: number;
+  child_chunk_overlap?: number;
+}
+
+export interface SearchDocumentsRequest {
+  query: string;
+  knowledge_base_id: string;
+  k?: number;
+  score_threshold?: number;
+  filter_metadata?: Record<string, any>;
+  enable_rerank?: boolean;
+  dense_limit?: number;
+  sparse_limit?: number;
+}
+
+export interface DeleteDocumentRequest {
+  file_url: string;
+  knowledge_base_id: string;
+  parent_id?: string;
+}
+
+export interface ListKBFilesRequest {
+  kb_id: string;
+}
+
+export interface DeleteFileFromKBRequest {
+  file_url: string;
+  kb_id: string;
 }

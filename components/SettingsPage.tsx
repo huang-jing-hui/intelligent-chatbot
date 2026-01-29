@@ -1,0 +1,132 @@
+import React, { useState, useEffect } from 'react';
+import { X, Server, Database, ChevronRight } from 'lucide-react';
+import { KnowledgeBaseManager } from './KnowledgeBaseManager';
+
+interface SettingsPageProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+type SettingsSection = 'server' | 'knowledgeBase';
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
+  const [activeSection, setActiveSection] = useState<SettingsSection>('server');
+  const [apiUrl, setApiUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      const savedApiUrl = localStorage.getItem('apiUrl');
+      const savedApiKey = localStorage.getItem('apiKey');
+      if (savedApiUrl) setApiUrl(savedApiUrl);
+      if (savedApiKey) setApiKey(savedApiKey);
+    }
+  }, [isOpen]);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem('apiUrl', apiUrl);
+    localStorage.setItem('apiKey', apiKey);
+    window.location.reload();
+  };
+
+  const menuItems = [
+    { id: 'server' as SettingsSection, label: '服务端配置', icon: Server },
+    { id: 'knowledgeBase' as SettingsSection, label: '知识库配置', icon: Database },
+  ];
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full max-w-5xl h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl flex overflow-hidden">
+        {/* Left Sidebar */}
+        <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">设置</h2>
+          </div>
+          <nav className="flex-1 p-2 space-y-1">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  activeSection === item.id
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.label}
+                <ChevronRight className={`w-4 h-4 ml-auto transition-transform ${
+                  activeSection === item.id ? 'rotate-90' : ''
+                }`} />
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Right Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              {menuItems.find(item => item.id === activeSection)?.label}
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {activeSection === 'server' && (
+              <div className="space-y-6 max-w-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    API URL
+                  </label>
+                  <input
+                    type="text"
+                    value={apiUrl}
+                    onChange={(e) => setApiUrl(e.target.value)}
+                    placeholder="http://localhost:8000"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter your API key"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    onClick={handleSaveSettings}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    保存设置
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'knowledgeBase' && (
+              <KnowledgeBaseManager />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
