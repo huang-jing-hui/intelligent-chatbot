@@ -24,9 +24,6 @@ export const Sidebar: React.FC<Props> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiUrl, setApiUrl] = useState('');
-  const [apiKey, setApiKey] = useState('');
 
   // Confirmation States
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -35,20 +32,6 @@ export const Sidebar: React.FC<Props> = ({
   const [renameConfirmOpen, setRenameConfirmOpen] = useState(false);
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const [renameTargetTitle, setRenameTargetTitle] = useState('');
-
-  useEffect(() => {
-    const savedApiUrl = localStorage.getItem('apiUrl');
-    const savedApiKey = localStorage.getItem('apiKey');
-    if (savedApiUrl) setApiUrl(savedApiUrl);
-    if (savedApiKey) setApiKey(savedApiKey);
-  }, []);
-
-  const handleSaveSettings = () => {
-    localStorage.setItem('apiUrl', apiUrl);
-    localStorage.setItem('apiKey', apiKey);
-    setShowSettings(false);
-    window.location.reload();
-  };
 
   const handleStartEdit = (e: React.MouseEvent, session: ChatSession) => {
     e.stopPropagation();
@@ -203,57 +186,6 @@ export const Sidebar: React.FC<Props> = ({
             )}
          </div>
       </div>
-
-      {/* Settings Modal */}
-      <Modal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="Settings"
-        footer={
-          <>
-            <button
-              onClick={() => setShowSettings(false)}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveSettings}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Save
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              API URL
-            </label>
-            <input
-              type="text"
-              value={apiUrl}
-              onChange={(e) => setApiUrl(e.target.value)}
-              placeholder="http://localhost:8000"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              API Key
-            </label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
-          </div>
-        </div>
-      </Modal>
 
       {/* Delete Confirmation */}
       <ConfirmDialog
