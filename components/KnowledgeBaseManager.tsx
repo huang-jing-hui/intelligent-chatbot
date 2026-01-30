@@ -55,6 +55,9 @@ export const KnowledgeBaseManager: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetKB, setDeleteTargetKB] = useState<KnowledgeBase | null>(null);
 
+  // 保存加载状态
+  const [isSaving, setIsSaving] = useState(false);
+
   // 加载知识库列表
   const loadKnowledgeBases = async () => {
     setIsLoading(true);
