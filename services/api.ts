@@ -258,6 +258,27 @@ export const uploadFile = async (url: string,file_name:string,need_parse:boolean
     }
 };
 
+
+// 获取模型配置列表
+export const getModelsConfig = async (): Promise<Array<{model: string; is_vllm: boolean}>> => {
+    const apiKey = getApiKey();
+    const headers: { 'Content-Type': string; 'Authorization'?: string } = {
+        'Content-Type': 'application/json',
+    };
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const response = await fetch(`${getApiBaseUrl()}/v1/models/config`, {
+        method: 'GET',
+        headers,
+    });
+    const data = await response.json();
+    if (data.status === 'success') {
+        return JSON.parse(data.data);
+    } else {
+        throw new Error(data.message || '获取模型配置失败');
+    }
+};
+
 // ==================== 知识库 API ====================
 
 import {

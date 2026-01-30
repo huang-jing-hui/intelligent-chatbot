@@ -55,7 +55,13 @@ export const AVAILABLE_MODELS: Model[] = [
   { id: 'glm-4-7-251222', name: 'glm-4-7-251222', isVlm: false },
 ];*/
 
-export const DEFAULT_MODEL = 'ark-code-latest';
+export const DEFAULT_MODEL = 'ark-code-latest'; // Fallback default model
+
+// 备用模型列表（当API加载失败时使用）
+export const FALLBACK_MODELS: Model[] = [
+  { id: 'doubao-seed-code-preview-latest', name: 'doubao-seed-code-preview-latest', isVlm: true },
+  { id: 'ark-code-latest', name: 'ark-code-latest', isVlm: true },
+];
 
 export type MessagePart =
   | { type: 'reasoning'; content: string }
@@ -274,4 +280,11 @@ export interface ListKBFilesRequest {
 export interface DeleteFileFromKBRequest {
   file_url: string;
   kb_id: string;
+}
+
+// ==================== 模型配置类型定义 ====================
+
+export interface ModelsConfigResponse {
+  model: string;
+  is_vllm: boolean;
 }

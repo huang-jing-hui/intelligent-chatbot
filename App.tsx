@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Menu } from 'lucide-react';
-import { Message, ChatSession, ToolCall, Attachment, ToolResult, AVAILABLE_MODELS, DEFAULT_MODEL } from './types';
-import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle, deleteChatSpecify } from './services/api';
+import { Message, ChatSession, ToolCall, Attachment, ToolResult, Model, FALLBACK_MODELS, DEFAULT_MODEL } from './types';
+import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle, deleteChatSpecify, getModelsConfig } from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
@@ -24,17 +24,48 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Model Selection State
+  const [availableModels, setAvailableModels] = useState<Model[]>(FALLBACK_MODELS);
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL);
   const [hasVisualMedia, setHasVisualMedia] = useState(false);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  // Load models from API
+  useEffect(() => {
+    const loadModels = async () => {
+      setIsLoadingModels(true);
+      try {
+        const modelsConfig = await getModelsConfig();
+        // Map API response to Model interface
+        const models: Model[] = modelsConfig.map(m => ({
+          id: m.model,
+          name: m.model,
+          isVlm: m.is_vllm,
+        }));
+        setAvailableModels(models);
+        // Set default model if current model is not in the list
+        if (models.length > 0 && !models.find(m => m.id === selectedModel)) {
+          setSelectedModel(models[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load models config:', error);
+        showToast('加载模型配置失败，使用默认配置', 'error');
+        // Fall back to hardcoded models
+        setAvailableModels(FALLBACK_MODELS);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    loadModels();
+  }, []);
 
   // Auto-switch to VLM if visual media is present and current model is not VLM
   const handleVisualMediaChange = (hasVisual: boolean) => {
     setHasVisualMedia(hasVisual);
     if (hasVisual) {
-      const currentModelConfig = AVAILABLE_MODELS.find(m => m.id === selectedModel);
+      const currentModelConfig = availableModels.find(m => m.id === selectedModel);
       if (!currentModelConfig?.isVlm) {
         // Switch to the first available VLM model
-        const defaultVlm = AVAILABLE_MODELS.find(m => m.isVlm);
+        const defaultVlm = availableModels.find(m => m.isVlm);
         if (defaultVlm) {
           setSelectedModel(defaultVlm.id);
           showToast(`Switched to ${defaultVlm.name} for image support`, 'info');
@@ -543,9 +574,9 @@ const App: React.FC = () => {
   };
 
   // Filter models based on visual media availability
-  const availableModels = hasVisualMedia
-    ? AVAILABLE_MODELS.filter(m => m.isVlm)
-    : AVAILABLE_MODELS;
+  const filteredModels = hasVisualMedia
+    ? availableModels.filter(m => m.isVlm)
+    : availableModels;
 
   return (
     <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
@@ -617,7 +648,7 @@ const App: React.FC = () => {
           isLoading={isLoading}
           onStop={handleStop}
           onVisualMediaChange={handleVisualMediaChange}
-          availableModels={availableModels}
+          availableModels={filteredModels}
           selectedModel={selectedModel}
           onModelSelect={setSelectedModel}
           onError={(msg) => showToast(msg, 'error')}
