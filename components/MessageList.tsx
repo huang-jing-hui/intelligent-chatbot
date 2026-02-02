@@ -72,6 +72,43 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
     return ids;
   }, [messages]);
 
+  // Build global tool result map from all messages
+  const toolResultMap = useMemo(() => {
+    const resultMap = new Map<string, any>();
+
+    messages.forEach(msg => {
+      // Check parts first
+      if (msg.parts) {
+        msg.parts.forEach(part => {
+          if (part.type === 'tool_result') {
+            part.tool_result.forEach(res => {
+              if (res.tool_call_id) {
+                resultMap.set(res.tool_call_id, res);
+              }
+            });
+          }
+        });
+      }
+
+      // Check legacy tool_result
+      if (msg.tool_result) {
+        msg.tool_result.forEach(res => {
+          if (res.tool_call_id) {
+            resultMap.set(res.tool_call_id, res);
+          }
+        });
+      }
+
+      // Check direct message role
+      if ((msg.role === 'tool' || msg.role === 'tool_result') && msg.tool_call_id) {
+        resultMap.set(msg.tool_call_id, { output: msg.content || '', name: msg.name });
+      }
+    });
+
+    console.log('[MessageList] Global toolResultMap:', resultMap.size, 'results');
+    return resultMap;
+  }, [messages]);
+
   // Group messages logic - optimized with shallow comparison
   const groupedMessages = useMemo(() => {
     const groups: { role: 'user' | 'bot'; messages: Message[] }[] = [];
@@ -226,6 +263,7 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
                       onDeleteMessage={onDeleteMessage}
                       onInterruptResponse={onInterruptResponse}
                       completedToolIds={completedToolIds}
+                      toolResultMap={toolResultMap}
                       onPreviewMedia={setPreviewMedia}
                       isLast={isLast}
                     />

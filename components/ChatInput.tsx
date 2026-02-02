@@ -153,7 +153,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
        }
 
        // Only process as code block if text length > 150 characters
-       if (text.length > 150) {
+       if (text.length > 30) {
          // Use highlight.js to auto-detect language
          // const result = hljs.highlightAuto(text);
          // let language = result.language;

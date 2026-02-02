@@ -3,6 +3,9 @@ import { BrainCircuit, Wrench, Terminal, CheckCircle2, XCircle, AlertCircle, Che
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ToolCall, InterruptInfo } from '../types';
 
+// Re-export UnifiedToolBlock for convenience
+export { UnifiedToolBlock } from './UnifiedToolBlock';
+
 export const ReasoningBlock: React.FC<{ content: string }> = ({ content }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 

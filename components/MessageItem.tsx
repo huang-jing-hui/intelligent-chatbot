@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {Message, Attachment, ToolCall, ToolResult} from '../types';
 import {ReasoningBlock, ToolCallsBlock, ToolResultBlock, InterruptBlock} from './MessageBlocks';
+import { UnifiedToolBlock } from './UnifiedToolBlock';
 import {MarkdownRenderer} from './MarkdownRenderer';
 import {
     Download,
@@ -22,6 +23,7 @@ interface Props {
     onDeleteMessage?: (id: string) => void;
     onInterruptResponse: (response: string, streamId?: string) => void;
     completedToolIds: Set<string>;
+    toolResultMap: Map<string, ToolResult>;  // 新增：全局 tool result map
     onPreviewMedia: (media: { url: string, type: 'image' | 'video' | 'file', name?: string }) => void;
     isLast: boolean;
 }
@@ -152,6 +154,7 @@ export const MessageItem: React.FC<Props> = React.memo(({
                                                             onDeleteMessage,
                                                             onInterruptResponse,
                                                             completedToolIds,
+                                                            toolResultMap,  // 新增参数
                                                             onPreviewMedia,
                                                             isLast
                                                         }) => {
@@ -367,22 +370,38 @@ export const MessageItem: React.FC<Props> = React.memo(({
     );
 
     // Parts or Legacy
+    // Use the global tool result map passed from MessageList
+    // No need to build it from current message anymore
+
     if (msg.parts && msg.parts.length > 0) {
         msg.parts.forEach((part, pIdx) => {
             const key = `${msgKey}-p${pIdx}`;
             if (part.type === 'reasoning') {
                 renderBlocks.push(renderNakedBlock(<ReasoningBlock content={part.content}/>, key));
             } else if (part.type === 'tool_calls') {
+                // Use UnifiedToolBlock for merged display
                 part.tool_calls.forEach((call, tcIdx) => {
-                    renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]}
-                                                                       completedIds={completedToolIds}/>, `${key}-tc${tcIdx}`));
+                    const result = toolResultMap.get(call.id);
+                    renderBlocks.push(renderNakedBlock(
+                        <UnifiedToolBlock
+                            call={call}
+                            result={result}
+                            isCompleted={completedToolIds.has(call.id)}
+                        />,
+                        `${key}-tc${tcIdx}`
+                    ));
                 });
             } else if (part.type === 'tool_result') {
+                // Tool results are now displayed within UnifiedToolBlock
+                // Only render standalone results that don't have a matching tool_call
                 part.tool_result.forEach((res, rIdx) => {
-                    if (!isToolResultEmpty(res.output, res.name)) {
-                        renderBlocks.push(renderNakedBlock(
-                            <ToolResultBlock content={res.output} toolName={res.name}/>
-                            , `${key}-tr${rIdx}`));
+                    if (res.tool_call_id && !toolResultMap.has(res.tool_call_id)) {
+                        // This is a standalone result without a matching tool call
+                        if (!isToolResultEmpty(res.output, res.name)) {
+                            renderBlocks.push(renderNakedBlock(
+                                <ToolResultBlock content={res.output} toolName={res.name}/>
+                                , `${key}-tr${rIdx}`));
+                        }
                     }
                 });
             } else if (part.type === 'text') {
@@ -412,12 +431,23 @@ export const MessageItem: React.FC<Props> = React.memo(({
         }
         if (msg.tool_calls && msg.tool_calls.length > 0) {
             msg.tool_calls.forEach((call, tcIdx) => {
-                renderBlocks.push(renderNakedBlock(<ToolCallsBlock calls={[call]}
-                                                                   completedIds={completedToolIds}/>, `${msgKey}-call-${tcIdx}`));
+                const result = toolResultMap.get(call.id);
+                renderBlocks.push(renderNakedBlock(
+                    <UnifiedToolBlock
+                        call={call}
+                        result={result}
+                        isCompleted={completedToolIds.has(call.id)}
+                    />,
+                    `${msgKey}-call-${tcIdx}`
+                ));
             });
         }
         if (msg.tool_result && msg.tool_result.length > 0) {
             msg.tool_result.forEach((res, rIdx) => {
+                // Only render standalone results that don't have a matching tool_call
+                if (res.tool_call_id && toolResultMap.has(res.tool_call_id)) {
+                    return; // Already rendered in UnifiedToolBlock
+                }
                 if (!isToolResultEmpty(res.output, res.name)) {
                     renderBlocks.push(renderNakedBlock(
                         <ToolResultBlock content={res.output} toolName={res.name}/>
@@ -425,7 +455,6 @@ export const MessageItem: React.FC<Props> = React.memo(({
                 }
             });
         }
-
     }
 
     // Interrupt

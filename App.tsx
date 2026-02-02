@@ -8,6 +8,7 @@ import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { SettingsPage } from './components/SettingsPage';
+import {ConfigProvider,NavBar,SafeArea} from "antd-mobile"
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -108,7 +109,7 @@ const App: React.FC = () => {
         lastStreamedIdRef.current = null;
         return;
       }
-      
+
       // Cancel previous fetch if it's still pending
       if (historyAbortControllerRef.current) {
         historyAbortControllerRef.current.abort();
@@ -271,9 +272,9 @@ const App: React.FC = () => {
       if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
       if (last.role !== 'assistant') return prev;
-      
+
       const updatedLast = updater({ ...last });
-      
+
       // If the ID changed (e.g. from temp UUID to backend ID), update preceding messages in this turn
       if (updatedLast.id !== last.id) {
         const newMessages = prev.map(m => m.id === last.id ? { ...m, id: updatedLast.id } : m);
@@ -344,7 +345,7 @@ const App: React.FC = () => {
 
         if (m.attachments && m.attachments.length > 0) {
           const contentParts: any[] = [];
-          
+
           // Add attachments
           m.attachments.forEach(att => {
              if (att.type === 'image') {
@@ -369,7 +370,7 @@ const App: React.FC = () => {
           if (m.content) {
             contentParts.push({ type: 'text', text: m.content });
           }
-          
+
           if (contentParts.length > 0) {
               content = contentParts;
           }
@@ -584,84 +585,89 @@ const App: React.FC = () => {
     : availableModels;
 
   return (
-    <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <ConfigProvider>
+        <SafeArea position='top'/> {/*处理刘海屏*/}
+        {/*<NavBar back={null}>jh-chatbot</NavBar>*/}
+        <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
+          {/* Mobile Sidebar Overlay */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
 
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${ 
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <Sidebar
-          sessions={sessions}
-          currentSessionId={currentSessionId}
-          onSelectSession={setCurrentSessionId}
-          onNewChat={createNewChat}
-          onDeleteChat={handleDeleteChat}
-          onRenameChat={handleRenameChat}
-          onOpenSettings={() => setShowSettings(true)}
-        />
-      </div>
-
-      {/* Settings Page */}
-      <SettingsPage
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black/50 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden shrink-0"
-            >
-                <Menu className="w-5 h-5" />
-            </button>
-            <div className="flex flex-col min-w-0">
-                <h1 className="font-semibold text-xs lg:text-sm truncate">
-                {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
-                </h1>
-                <span className="text-[10px] text-green-500 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                Online
-                </span>
-            </div>
+          {/* Sidebar */}
+          <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${ 
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}>
+            <Sidebar
+              sessions={sessions}
+              currentSessionId={currentSessionId}
+              onSelectSession={setCurrentSessionId}
+              onNewChat={createNewChat}
+              onDeleteChat={handleDeleteChat}
+              onRenameChat={handleRenameChat}
+              onOpenSettings={() => setShowSettings(true)}
+            />
           </div>
-        </header>
 
-        <MessageList
-          messages={messages}
-          onInterruptResponse={handleInterruptResponse}
-          isLoading={isLoading && messages.length === 0}
-          isStreaming={isLoading}
-          onDeleteMessage={handleDeleteMessage}
-          onLoadMore={() => currentSessionId && loadMessages(currentSessionId, true)}
-          hasMore={hasMore}
-          isLoadingMore={isFetchingHistory}
-        />
+          {/* Settings Page */}
+          <SettingsPage
+            isOpen={showSettings}
+            onClose={() => setShowSettings(false)}
+          />
 
-        {/* Input Area */}
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-          onStop={handleStop}
-          onVisualMediaChange={handleVisualMediaChange}
-          availableModels={filteredModels}
-          selectedModel={selectedModel}
-          onModelSelect={setSelectedModel}
-          onError={(msg) => showToast(msg, 'error')}
-        />
-      </div>
-      
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
-    </div>
+          {/* Main Chat Area */}
+          <div className="flex-1 flex flex-col min-w-0 h-full">
+            <header className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black/50 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <button
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className="p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden shrink-0"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
+                <div className="flex flex-col min-w-0">
+                    <h1 className="font-semibold text-xs lg:text-sm truncate">
+                    {sessions.find(s => s.id === currentSessionId)?.title || 'New Chat'}
+                    </h1>
+                    <span className="text-[10px] text-green-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    Online
+                    </span>
+                </div>
+              </div>
+            </header>
+
+            <MessageList
+              messages={messages}
+              onInterruptResponse={handleInterruptResponse}
+              isLoading={isLoading && messages.length === 0}
+              isStreaming={isLoading}
+              onDeleteMessage={handleDeleteMessage}
+              onLoadMore={() => currentSessionId && loadMessages(currentSessionId, true)}
+              hasMore={hasMore}
+              isLoadingMore={isFetchingHistory}
+            />
+
+            {/* Input Area */}
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              onStop={handleStop}
+              onVisualMediaChange={handleVisualMediaChange}
+              availableModels={filteredModels}
+              selectedModel={selectedModel}
+              onModelSelect={setSelectedModel}
+              onError={(msg) => showToast(msg, 'error')}
+            />
+          </div>
+
+          <ToastContainer toasts={toasts} removeToast={removeToast} />
+        </div>
+        <SafeArea position='bottom' /> {/* 处理底部手势条*/}
+      </ConfigProvider>
   );
 };
 
