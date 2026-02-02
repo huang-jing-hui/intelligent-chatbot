@@ -1,7 +1,72 @@
 import {Message, ChatSession, ChatRequest, StreamChunk} from '../types';
+import {sqlStorageService, initializeSQLStorage} from './sql-storage';
 
-const getApiBaseUrl = () => localStorage.getItem('apiUrl') || (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_BASE || process.env.AI_CHATBOT_BASE || 'http://localhost:8000';
-const getApiKey = () => localStorage.getItem('apiKey') || (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_API_KEY || process.env.AI_CHATBOT_API_KEY || '';
+// Cached config values (initialized from SQL storage or localStorage)
+let cachedApiUrl: string | null = null;
+let cachedApiKey: string | null = null;
+let sqlStorageInitialized = false;
+
+/**
+ * Initialize SQL storage and cache the values
+ * Should be called on app startup
+ */
+export async function initApiConfig(): Promise<void> {
+  if (sqlStorageInitialized) return;
+
+  try {
+    await initializeSQLStorage();
+
+    // Try to load from SQL storage
+    const config = await sqlStorageService.loadConfig();
+    if (config) {
+      cachedApiUrl = config.apiUrl;
+      cachedApiKey = config.apiKey;
+      console.log('[API] Config loaded from SQL storage');
+    } else {
+      // Fallback to localStorage
+      cachedApiUrl = localStorage.getItem('apiUrl');
+      cachedApiKey = localStorage.getItem('apiKey');
+      console.log('[API] Config loaded from localStorage');
+    }
+  } catch (error) {
+    console.warn('[API] Failed to initialize SQL storage, using localStorage:', error);
+    // Fallback to localStorage
+    cachedApiUrl = localStorage.getItem('apiUrl');
+    cachedApiKey = localStorage.getItem('apiKey');
+  }
+
+  sqlStorageInitialized = true;
+}
+
+const getApiBaseUrl = () => {
+  const url = cachedApiUrl ||
+    localStorage.getItem('apiUrl') ||
+    (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_BASE ||
+    process.env.AI_CHATBOT_BASE ||
+    'http://localhost:8000';
+
+  // Update cache if we got a value from localStorage
+  if (!cachedApiUrl && localStorage.getItem('apiUrl')) {
+    cachedApiUrl = localStorage.getItem('apiUrl');
+  }
+
+  return url;
+};
+
+const getApiKey = () => {
+  const key = cachedApiKey ||
+    localStorage.getItem('apiKey') ||
+    (window as any).AI_CHATBOT_CONFIG?.AI_CHATBOT_API_KEY ||
+    process.env.AI_CHATBOT_API_KEY ||
+    '';
+
+  // Update cache if we got a value from localStorage
+  if (!cachedApiKey && localStorage.getItem('apiKey')) {
+    cachedApiKey = localStorage.getItem('apiKey');
+  }
+
+  return key;
+};
 
 // Helper to handle streaming responses
 export async function* streamChatCompletion(request: ChatRequest, signal?: AbortSignal): AsyncGenerator<StreamChunk, void, unknown> {

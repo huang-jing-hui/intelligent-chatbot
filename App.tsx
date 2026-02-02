@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Menu } from 'lucide-react';
 import { Message, ChatSession, ToolCall, Attachment, ToolResult, Model, FALLBACK_MODELS, DEFAULT_MODEL } from './types';
-import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle, deleteChatSpecify, getModelsConfig } from './services/api';
+import { streamChatCompletion, getChatTitles, getChatMessages, deleteChat, updateChatTitle, deleteChatSpecify, getModelsConfig, initApiConfig } from './services/api';
 import { MessageList } from './components/MessageList';
 import { Sidebar } from './components/Sidebar';
 import { ChatInput } from './components/ChatInput';
@@ -22,6 +22,11 @@ const App: React.FC = () => {
   const historyAbortControllerRef = useRef<AbortController | null>(null);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Initialize secure storage on app startup
+  useEffect(() => {
+    initApiConfig().catch(console.error);
+  }, []);
 
   // Model Selection State
   const [availableModels, setAvailableModels] = useState<Model[]>(FALLBACK_MODELS);
