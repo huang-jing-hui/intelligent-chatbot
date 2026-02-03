@@ -13,29 +13,46 @@ let sqlStorageInitialized = false;
 export async function initApiConfig(): Promise<void> {
   if (sqlStorageInitialized) return;
 
+  console.log('[API] Initializing API config...');
+
   try {
     await initializeSQLStorage();
+    console.log('[API] SQL storage initialized');
 
     // Try to load from SQL storage
     const config = await sqlStorageService.loadConfig();
     if (config) {
       cachedApiUrl = config.apiUrl;
       cachedApiKey = config.apiKey;
-      console.log('[API] Config loaded from SQL storage');
+      console.log('[API] Config loaded from SQL storage:', {
+        apiUrl: config.apiUrl ? '***set***' : '',
+        apiKey: config.apiKey ? '***set***' : ''
+      });
     } else {
       // Fallback to localStorage
       cachedApiUrl = localStorage.getItem('apiUrl');
       cachedApiKey = localStorage.getItem('apiKey');
-      console.log('[API] Config loaded from localStorage');
+      console.log('[API] Config loaded from localStorage:', {
+        apiUrl: cachedApiUrl ? '***set***' : '',
+        apiKey: cachedApiKey ? '***set***' : ''
+      });
     }
   } catch (error) {
     console.warn('[API] Failed to initialize SQL storage, using localStorage:', error);
     // Fallback to localStorage
     cachedApiUrl = localStorage.getItem('apiUrl');
     cachedApiKey = localStorage.getItem('apiKey');
+    console.log('[API] Config from localStorage fallback:', {
+      apiUrl: cachedApiUrl ? '***set***' : '',
+      apiKey: cachedApiKey ? '***set***' : ''
+    });
   }
 
   sqlStorageInitialized = true;
+  console.log('[API] Final cached config:', {
+    apiUrl: cachedApiUrl ? '***set***' : '',
+    apiKey: cachedApiKey ? '***set***' : ''
+  });
 }
 
 const getApiBaseUrl = () => {
@@ -68,9 +85,33 @@ const getApiKey = () => {
   return key;
 };
 
+// Debug helper to log API config
+const logApiConfig = () => {
+  const url = getApiBaseUrl();
+  const key = getApiKey();
+  console.log('[API] Current config:', {
+    baseUrl: url,
+    hasApiKey: !!key,
+    cachedUrl: cachedApiUrl ? '***set***' : '',
+    cachedKey: cachedApiKey ? '***set***' : '',
+    localUrl: localStorage.getItem('apiUrl'),
+    localKey: localStorage.getItem('apiKey') ? '***set***' : '',
+  });
+};
+
+/**
+ * Exported function to update the cached config values
+ * Call this after saving new config
+ */
+export const updateApiConfigCache = (apiUrl: string, apiKey: string) => {
+  cachedApiUrl = apiUrl;
+  cachedApiKey = apiKey;
+};
+
 // Helper to handle streaming responses
 export async function* streamChatCompletion(request: ChatRequest, signal?: AbortSignal): AsyncGenerator<StreamChunk, void, unknown> {
     const apiKey = getApiKey();
+    const apiUrl = getApiBaseUrl();
     const headers: { 'Content-Type': string; 'Authorization'?: string } = {
         'Content-Type': 'application/json',
     };
@@ -78,7 +119,14 @@ export async function* streamChatCompletion(request: ChatRequest, signal?: Abort
         headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    const response = await fetch(`${getApiBaseUrl()}/v1/chat/completions`, {
+    const fullUrl = `${apiUrl}/v1/chat/completions`;
+    console.log('[API] Streaming chat completion:', {
+      url: fullUrl,
+      hasApiKey: !!apiKey,
+      model: request.model,
+    });
+
+    const response = await fetch(fullUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(request),
@@ -86,7 +134,12 @@ export async function* streamChatCompletion(request: ChatRequest, signal?: Abort
     });
 
     if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
+      console.error('[API] Request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: fullUrl,
+      });
+      throw new Error(`API Error: ${response.statusText}`);
     }
 
     if (!response.body) throw new Error('No response body');
@@ -327,20 +380,37 @@ export const uploadFile = async (url: string,file_name:string,need_parse:boolean
 // 获取模型配置列表
 export const getModelsConfig = async (): Promise<Array<{model: string; is_vllm: boolean}>> => {
     const apiKey = getApiKey();
+    const apiUrl = getApiBaseUrl();
     const headers: { 'Content-Type': string; 'Authorization'?: string } = {
         'Content-Type': 'application/json',
     };
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
 
-    const response = await fetch(`${getApiBaseUrl()}/v1/models/config`, {
+    const fullUrl = `${apiUrl}/v1/models/config`;
+    console.log('[API] Getting models config:', {
+      url: fullUrl,
+      hasApiKey: !!apiKey,
+    });
+
+    const response = await fetch(fullUrl, {
         method: 'GET',
         headers,
     });
+
+    if (!response.ok) {
+      console.error('[API] Get models failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: fullUrl,
+      });
+      throw new Error(`API Error ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
     if (data.status === 'success') {
-        return JSON.parse(data.data);
+      return JSON.parse(data.data);
     } else {
-        throw new Error(data.message || '获取模型配置失败');
+      throw new Error(data.message || '获取模型配置失败');
     }
 };
 

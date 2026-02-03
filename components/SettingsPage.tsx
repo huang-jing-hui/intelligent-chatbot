@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Server, Database, ChevronRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { KnowledgeBaseManager } from './KnowledgeBaseManager';
 import { sqlStorageService } from '../services/sql-storage';
+import { updateApiConfigCache } from '../services/api';
 
 interface SettingsPageProps {
   isOpen: boolean;
@@ -58,11 +59,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) =
     setErrorMessage('');
 
     try {
+      console.log('[Settings] Saving config:', { apiUrl: apiUrl ? '***set***' : '', apiKey: apiKey ? '***set***' : '' });
+
       // Try to save to SQL storage
       await sqlStorageService.saveConfig({
         apiUrl,
         apiKey,
       });
+
+      console.log('[Settings] Saved to SQL storage');
+
+      // Also save to localStorage as backup (for Android compatibility)
+      localStorage.setItem('apiUrl', apiUrl);
+      localStorage.setItem('apiKey', apiKey);
+      console.log('[Settings] Saved to localStorage as backup');
+
+      // Update the API config cache immediately
+      updateApiConfigCache(apiUrl, apiKey);
+      console.log('[Settings] Updated API config cache');
 
       setSaveStatus('success');
 
@@ -71,13 +85,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) =
         window.location.reload();
       }, 1000);
     } catch (error) {
-      console.error('Failed to save config:', error);
+      console.error('[Settings] Failed to save config:', error);
       setSaveStatus('error');
       setErrorMessage('保存失败，请重试');
 
       // Still save to localStorage as fallback
       localStorage.setItem('apiUrl', apiUrl);
       localStorage.setItem('apiKey', apiKey);
+      updateApiConfigCache(apiUrl, apiKey);
+      console.log('[Settings] Saved to localStorage as fallback');
 
       // Clear error message after 3 seconds
       setTimeout(() => {

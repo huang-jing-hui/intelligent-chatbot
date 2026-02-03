@@ -18,7 +18,7 @@ android {
     compileSdk = 36
     namespace = "com.hjh.chatbot"
     defaultConfig {
-        manifestPlaceholders["usesCleartextTraffic"] = "false"
+        manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "com.hjh.chatbot"
         minSdk = 24
         targetSdk = 36
