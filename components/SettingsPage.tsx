@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Server, Database, ChevronRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Server, Database, ChevronRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { KnowledgeBaseManager } from './KnowledgeBaseManager';
 import { sqlStorageService } from '../services/sql-storage';
 import { updateApiConfigCache } from '../services/api';
 
 interface SettingsPageProps {
-  isOpen: boolean;
-  onClose: () => void;
+  onBack: () => void;
 }
 
 type SettingsSection = 'server' | 'knowledgeBase';
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('server');
   const [apiUrl, setApiUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -22,10 +21,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) =
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (isOpen) {
-      loadSavedConfig();
-    }
-  }, [isOpen]);
+    loadSavedConfig();
+  }, []);
 
   const loadSavedConfig = async () => {
     setIsLoading(true);
@@ -108,11 +105,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) =
     { id: 'knowledgeBase' as SettingsSection, label: '知识库配置', icon: Database },
   ];
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-5xl h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl flex overflow-hidden">
+    <div className="fixed inset-0 z-50 flex bg-white dark:bg-gray-900">
+      <div className="w-full h-full flex overflow-hidden">
         {/* Left Sidebar */}
         <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -142,16 +137,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) =
         {/* Right Content */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={onBack}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
               {menuItems.find(item => item.id === activeSection)?.label}
             </h3>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Content */}
