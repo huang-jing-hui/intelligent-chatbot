@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { ChatSession } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -11,6 +11,8 @@ interface Props {
   onDeleteChat: (id: string) => void;
   onRenameChat: (id: string, newTitle: string) => Promise<void>;
   onOpenSettings?: () => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const Sidebar: React.FC<Props> = ({
@@ -20,7 +22,9 @@ export const Sidebar: React.FC<Props> = ({
   onNewChat,
   onDeleteChat,
   onRenameChat,
-  onOpenSettings
+  onOpenSettings,
+  isExpanded = true,
+  onToggleExpand
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -77,14 +81,28 @@ export const Sidebar: React.FC<Props> = ({
   };
 
   return (
-    <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full">
-      <div className="p-4">
+    <div className={`bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col flex-1 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-16'}`}>
+      {/* Toggle Button */}
+      <div className={`flex ${isExpanded ? 'justify-end' : 'justify-center'} p-2`}>
+        <button
+          onClick={onToggleExpand}
+          className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          title={isExpanded ? '收起侧边栏' : '展开侧边栏'}
+        >
+          {isExpanded ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+        </button>
+      </div>
+
+      <div className={`${isExpanded ? 'px-4' : 'px-2'}`}>
         <button
           onClick={onNewChat}
-          className="w-full flex items-center gap-2 justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm mb-4"
+          className={`flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm mb-4 ${
+            isExpanded ? 'w-full gap-2 px-4 py-3' : 'w-12 h-12 mx-auto'
+          }`}
+          title="New Chat"
         >
-          <Plus className="w-5 h-5" />
-          New Chat
+          <Plus className={`${isExpanded ? 'w-5 h-5' : 'w-6 h-6'}`} />
+          {isExpanded && <span>New Chat</span>}
         </button>
       </div>
 
@@ -93,96 +111,106 @@ export const Sidebar: React.FC<Props> = ({
           <div
             key={session.id}
             onClick={() => editingId !== session.id && onSelectSession(session.id)}
-            className={`group flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${
+            className={`group flex items-center rounded-lg cursor-pointer transition-colors ${
+              isExpanded ? 'gap-3 px-3 py-3' : 'justify-center p-2'
+            } ${
               currentSessionId === session.id
                 ? 'bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700'
                 : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
             }`}
           >
-            <MessageSquare className={`w-4 h-4 shrink-0 ${
+            <MessageSquare className={`shrink-0 ${
                currentSessionId === session.id ? 'text-blue-500' : 'text-gray-400'
-            }`} />
+            } ${isExpanded ? 'w-4 h-4' : 'w-5 h-5'}`} />
 
-            <div className="flex-1 min-w-0">
-              {editingId === session.id ? (
-                <input
-                  autoFocus
-                  className="w-full bg-gray-100 dark:bg-gray-700 border-none rounded px-1 py-0.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveEditTrigger(e as any, session.id);
-                    if (e.key === 'Escape') handleCancelEdit(e as any);
-                  }}
-                />
-              ) : (
-                <p className={`text-[13px] truncate ${
-                  currentSessionId === session.id ? 'font-medium text-gray-900 dark:text-white' : ''
-                }`}>
-                  {session.title || 'New Conversation'}
-                </p>
-              )}
-            </div>
+            {isExpanded && (
+              <>
+                <div className="flex-1 min-w-0">
+                  {editingId === session.id ? (
+                    <input
+                      autoFocus
+                      className="w-full bg-gray-100 dark:bg-gray-700 border-none rounded px-1 py-0.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveEditTrigger(e as any, session.id);
+                        if (e.key === 'Escape') handleCancelEdit(e as any);
+                      }}
+                    />
+                  ) : (
+                    <p className={`text-[13px] truncate ${
+                      currentSessionId === session.id ? 'font-medium text-gray-900 dark:text-white' : ''
+                    }`}>
+                      {session.title || 'New Conversation'}
+                    </p>
+                  )}
+                </div>
 
-            <div className="flex items-center gap-1">
-              {editingId === session.id ? (
-                <>
-                  <button
-                    onClick={(e) => handleSaveEditTrigger(e, session.id)}
-                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded text-green-600 transition-all"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 transition-all"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={(e) => handleStartEdit(e, session)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-blue-500 transition-all"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteTrigger(e, session.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-gray-400 hover:text-red-500 transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              )}
-            </div>
+                <div className="flex items-center gap-1">
+                  {editingId === session.id ? (
+                    <>
+                      <button
+                        onClick={(e) => handleSaveEditTrigger(e, session.id)}
+                        className="p-1 hover:bg-green-100 dark:hover:bg-green-900/30 rounded text-green-600 transition-all"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 transition-all"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => handleStartEdit(e, session)}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 hover:text-blue-500 transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteTrigger(e, session.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-gray-400 hover:text-red-500 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         ))}
 
-        {sessions.length === 0 && (
+        {sessions.length === 0 && isExpanded && (
           <div className="text-center py-10 px-4 text-gray-400 text-sm">
             No chat history
           </div>
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-         <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500" />
-            <div className="flex-1 min-w-0">
-               <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">Hjh</p>
-               <p className="text-[11px] text-gray-500 truncate">jump</p>
-            </div>
-            {onOpenSettings && (
-              <button
-                onClick={onOpenSettings}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-blue-500 transition-all"
-                title="Settings"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
+      <div className={`p-4 border-t border-gray-200 dark:border-gray-800 ${!isExpanded && 'px-2'}`}>
+         <div className={`flex items-center ${isExpanded ? 'gap-3 px-2' : 'justify-center'}`}>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 shrink-0" />
+            {isExpanded && (
+              <>
+                <div className="flex-1 min-w-0">
+                   <p className="text-[13px] font-medium text-gray-900 dark:text-white truncate">Hjh</p>
+                   <p className="text-[11px] text-gray-500 truncate">jump</p>
+                </div>
+                {onOpenSettings && (
+                  <button
+                    onClick={onOpenSettings}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-blue-500 transition-all"
+                    title="Settings"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                )}
+              </>
             )}
          </div>
       </div>

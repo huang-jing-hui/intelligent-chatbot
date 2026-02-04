@@ -19,6 +19,7 @@ const [currentView, setCurrentView] = useState<View>('chat');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const lastStreamedIdRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const historyAbortControllerRef = useRef<AbortController | null>(null);
@@ -600,7 +601,7 @@ const [currentView, setCurrentView] = useState<View>('chat');
           )}
 
           {/* Sidebar */}
-          <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${ 
+          <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 lg:relative lg:translate-x-0 flex flex-col ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}>
             <Sidebar
@@ -611,6 +612,8 @@ const [currentView, setCurrentView] = useState<View>('chat');
               onDeleteChat={handleDeleteChat}
               onRenameChat={handleRenameChat}
               onOpenSettings={() => setCurrentView('settings')}
+              isExpanded={isSidebarExpanded}
+              onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
             />
           </div>
 

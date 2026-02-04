@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Server, Database, ChevronRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Server, Database, ChevronRight, CheckCircle, AlertCircle, Loader2, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { KnowledgeBaseManager } from './KnowledgeBaseManager';
 import { sqlStorageService } from '../services/sql-storage';
 import { updateApiConfigCache } from '../services/api';
@@ -14,6 +14,7 @@ type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('server');
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [apiUrl, setApiUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -109,26 +110,40 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
     <div className="fixed inset-0 z-50 flex bg-white dark:bg-gray-900">
       <div className="w-full h-full flex overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">设置</h2>
+        <div className={`bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ${sidebarExpanded ? 'w-64' : 'w-16'}`}>
+          {/* Toggle Button */}
+          <div className={`flex ${sidebarExpanded ? 'justify-end' : 'justify-center'} p-2 border-b border-gray-200 dark:border-gray-700`}>
+            <button
+              onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              title={sidebarExpanded ? '收起侧边栏' : '展开侧边栏'}
+            >
+              {sidebarExpanded ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+            </button>
           </div>
           <nav className="flex-1 p-2 space-y-1">
             {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center rounded-lg text-sm font-medium transition-colors ${
+                  sidebarExpanded ? 'w-full gap-3 px-3 py-2.5' : 'w-full justify-center p-2'
+                } ${
                   activeSection === item.id
                     ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
+                title={item.label}
               >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-                <ChevronRight className={`w-4 h-4 ml-auto transition-transform ${
-                  activeSection === item.id ? 'rotate-90' : ''
-                }`} />
+                <item.icon className="w-4 h-4 shrink-0" />
+                {sidebarExpanded && (
+                  <>
+                    <span className="flex-1 text-left">{item.label}</span>
+                    <ChevronRight className={`w-4 h-4 transition-transform ${
+                      activeSection === item.id ? 'rotate-90' : ''
+                    }`} />
+                  </>
+                )}
               </button>
             ))}
           </nav>
