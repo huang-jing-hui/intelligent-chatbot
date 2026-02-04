@@ -1,6 +1,13 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.app" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- 刘海屏/水滴屏适配 - 延伸到刘海区域 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <!-- 透明状态栏 -->
+        <item name="android:windowTranslucentStatus">true</item>
+        <!-- 透明导航栏 -->
+        <item name="android:windowTranslucentNavigation">true</item>
+        <!-- 背景透明以支持安全区域 -->
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 </resources>

@@ -85,9 +85,9 @@ export const Sidebar: React.FC<Props> = ({
   };
 
   return (
-    <div className={`bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col flex-1 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-16'}`}>
-      {/* Toggle Button & Refresh */}
-      <div className={`flex items-center p-2 ${isExpanded ? 'justify-between' : 'justify-center flex-col gap-2'}`}>
+    <div className={`bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full overflow-hidden transition-all duration-300 ${isExpanded ? 'w-64' : 'w-16'}`}>
+      {/* Toggle Button & Refresh - 添加 safe area padding */}
+      <div className={`flex items-center pt-[env(safe-area-inset-top,0px)] p-2 ${isExpanded ? 'justify-between' : 'justify-center flex-col gap-2'}`}>
         {onRefreshSessions && (
           <button
             onClick={onRefreshSessions}
@@ -206,7 +206,8 @@ export const Sidebar: React.FC<Props> = ({
         )}
       </div>
 
-      <div className={`p-4 border-t border-gray-200 dark:border-gray-800 ${!isExpanded && 'px-2'}`}>
+      {/* Bottom section - 添加 safe area padding */}
+      <div className={`p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-gray-200 dark:border-gray-800 ${!isExpanded && 'px-2'}`}>
          <div className={`flex items-center ${isExpanded ? 'gap-3 px-2' : 'justify-center'}`}>
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 shrink-0" />
             {isExpanded && (
