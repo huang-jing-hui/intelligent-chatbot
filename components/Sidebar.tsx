@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Pencil, Check, X, Settings, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { ChatSession } from '../types';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -13,6 +13,8 @@ interface Props {
   onOpenSettings?: () => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  onRefreshSessions?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const Sidebar: React.FC<Props> = ({
@@ -24,7 +26,9 @@ export const Sidebar: React.FC<Props> = ({
   onRenameChat,
   onOpenSettings,
   isExpanded = true,
-  onToggleExpand
+  onToggleExpand,
+  onRefreshSessions,
+  isRefreshing = false
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -82,8 +86,18 @@ export const Sidebar: React.FC<Props> = ({
 
   return (
     <div className={`bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col flex-1 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-16'}`}>
-      {/* Toggle Button */}
-      <div className={`flex ${isExpanded ? 'justify-end' : 'justify-center'} p-2`}>
+      {/* Toggle Button & Refresh */}
+      <div className={`flex items-center p-2 ${isExpanded ? 'justify-between' : 'justify-center flex-col gap-2'}`}>
+        {onRefreshSessions && (
+          <button
+            onClick={onRefreshSessions}
+            disabled={isRefreshing}
+            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+            title="刷新列表"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+        )}
         <button
           onClick={onToggleExpand}
           className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"

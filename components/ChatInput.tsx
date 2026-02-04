@@ -1,6 +1,6 @@
 import { uploadFile } from '../services/api';
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, FileText, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { Send, Paperclip, X, Maximize2, Minimize2, Loader2, Download, Eye, FileVideo, FileText, Image as ImageIcon, ChevronDown, RefreshCw } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Attachment, vlm_handlers, txt_handlers, Model } from '../types';
 import hljs from 'highlight.js';
@@ -20,6 +20,8 @@ interface ChatInputProps {
   selectedModel: string;
   onModelSelect: (modelId: string) => void;
   onError?: (message: string) => void;
+  onRefreshModels?: () => void;
+  isRefreshingModels?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -30,7 +32,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   availableModels,
   selectedModel,
   onModelSelect,
-  onError
+  onError,
+  onRefreshModels,
+  isRefreshingModels
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -324,6 +328,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   </div>
 
                   <div className="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
+
+                  {onRefreshModels && (
+                    <button
+                        onClick={onRefreshModels}
+                        disabled={isRefreshingModels || isLoading}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                        title="刷新模型列表"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isRefreshingModels ? 'animate-spin' : ''}`} />
+                    </button>
+                  )}
 
                   <button
                       onClick={() => fileInputRef.current?.click()}
