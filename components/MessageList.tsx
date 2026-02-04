@@ -100,9 +100,9 @@ export const MessageList: React.FC<Props> = React.memo(({ messages, onInterruptR
       }
 
       // Check direct message role
-      // if ((msg.role === 'tool' || msg.role === 'tool_result') && msg.tool_call_id) {
-      //   resultMap.set(msg.tool_call_id, { output: msg.content || '', name: msg.name });
-      // }
+      if ((msg.role === 'tool' || msg.role === 'tool_result') && msg.tool_call_id) {
+        resultMap.set(msg.tool_call_id, { output: msg.content || '', name: msg.name });
+      }
     });
 
     console.log('[MessageList] Global toolResultMap:', resultMap.size, 'results');
