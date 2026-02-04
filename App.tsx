@@ -20,6 +20,7 @@ const [currentView, setCurrentView] = useState<View>('chat');
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
   const lastStreamedIdRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const historyAbortControllerRef = useRef<AbortController | null>(null);
@@ -38,31 +39,32 @@ const [currentView, setCurrentView] = useState<View>('chat');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   // Load models from API
-  useEffect(() => {
-    const loadModels = async () => {
-      setIsLoadingModels(true);
-      try {
-        const modelsConfig = await getModelsConfig();
-        // Map API response to Model interface
-        const models: Model[] = modelsConfig.map(m => ({
-          id: m.model,
-          name: m.model,
-          isVlm: m.is_vllm,
-        }));
-        setAvailableModels(models);
-        // Set default model if current model is not in the list
-        if (models.length > 0 && !models.find(m => m.id === selectedModel)) {
-          setSelectedModel(models[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to load models config:', error);
-        showToast('加载模型配置失败，使用默认配置', 'error');
-        // Fall back to hardcoded models
-        setAvailableModels(FALLBACK_MODELS);
-      } finally {
-        setIsLoadingModels(false);
+  const loadModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const modelsConfig = await getModelsConfig();
+      // Map API response to Model interface
+      const models: Model[] = modelsConfig.map(m => ({
+        id: m.model,
+        name: m.model,
+        isVlm: m.is_vllm,
+      }));
+      setAvailableModels(models);
+      // Set default model if current model is not in the list
+      if (models.length > 0 && !models.find(m => m.id === selectedModel)) {
+        setSelectedModel(models[0].id);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load models config:', error);
+      showToast('加载模型配置失败，使用默认配置', 'error');
+      // Fall back to hardcoded models
+      setAvailableModels(FALLBACK_MODELS);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  useEffect(() => {
     loadModels();
   }, []);
 
@@ -266,6 +268,19 @@ const [currentView, setCurrentView] = useState<View>('chat');
       }
     } catch (error) {
       console.error("Failed to rename chat", error);
+    }
+  };
+
+  const handleRefreshSessions = async () => {
+    setIsRefreshingSessions(true);
+    try {
+      await loadSessions(false);
+      showToast('列表已刷新', 'success');
+    } catch (error) {
+      console.error("Failed to refresh sessions", error);
+      showToast('刷新失败', 'error');
+    } finally {
+      setIsRefreshingSessions(false);
     }
   };
 
@@ -614,6 +629,8 @@ const [currentView, setCurrentView] = useState<View>('chat');
               onOpenSettings={() => setCurrentView('settings')}
               isExpanded={isSidebarExpanded}
               onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
+              onRefreshSessions={handleRefreshSessions}
+              isRefreshing={isRefreshingSessions}
             />
           </div>
 
@@ -665,6 +682,8 @@ const [currentView, setCurrentView] = useState<View>('chat');
               selectedModel={selectedModel}
               onModelSelect={setSelectedModel}
               onError={(msg) => showToast(msg, 'error')}
+              onRefreshModels={loadModels}
+              isRefreshingModels={isLoadingModels}
             />
           </div>
 
