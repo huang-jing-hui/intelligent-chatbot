@@ -587,9 +587,10 @@ const [currentView, setCurrentView] = useState<View>('chat');
 
   return (
       <ConfigProvider>
-        <SafeArea position='top'/> {/*处理刘海屏*/}
-        {/*<NavBar back={null}>jh-chatbot</NavBar>*/}
-        <div className="flex h-full w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
+        <div className="flex flex-col h-screen w-full bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
+          <SafeArea position='top'/> {/*处理刘海屏*/}
+          {/*<NavBar back={null}>jh-chatbot</NavBar>*/}
+          <div className="flex-1 flex min-h-0">
           {/* Mobile Sidebar Overlay */}
           {isSidebarOpen && (
             <div
@@ -665,8 +666,9 @@ const [currentView, setCurrentView] = useState<View>('chat');
           </div>
 
           <ToastContainer toasts={toasts} removeToast={removeToast} />
+          </div>
+          <SafeArea position='bottom' /> {/* 处理底部手势条*/}
         </div>
-        <SafeArea position='bottom' /> {/* 处理底部手势条*/}
       </ConfigProvider>
   );
 };
